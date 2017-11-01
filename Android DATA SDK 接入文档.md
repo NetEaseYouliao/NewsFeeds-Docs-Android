@@ -8,18 +8,29 @@ NewsFeedsSDK提供的功能如下：
 - 获取频道列表
 - 获取新闻列表
 - 获取新闻详情
-- 新闻正文WebView
 - 用户行为采集上传
 
 ## SDK类说明
 
 网易有料NNewsFeedsSDK主要提供了以下类：
 
-- NNewsFeedsSDK：整个SDK的主入口，单例，主要提供初始化，配置用户信息，加载频道、新闻列表的功能
+- NNewsFeedsSDK：整个SDK的主入口，单例，主要提供初始化，配置用户信息，加载频道、新闻列表、新闻详情的功能
 - NNFTracker：用户行为追踪的单例类
-- NNFNewsDetailsWebView：WebView派生类，提供新闻正文展示功能
 - NNFChannels：频道列表的model类
+- NNFChannelInfo：单个频道的model类
 - NNFNews：新闻列表的model类
+- NNFNewsInfo：单个新闻的model类
+- NNFNewsDetails：新闻详情的model类
+
+## 外部依赖说明
+
+- 广告（v1.2新增）
+
+从v1.2开始，我们的SDK内嵌了腾讯广点通广告SDK，用户在使用本SDK的时候，确保工程中未使用广点通的SDK。
+
+- 推送（v1.2新增）
+
+我们的SDK依赖了推送SDK，使用的是个推的第三方推送SDK，相关使用参考个推官网开发使用文档：http://docs.getui.com/mobile/android/androidstudio_maven/
 
 ## 开发准备
 
@@ -45,13 +56,6 @@ allprojects {
 ```java
 compile 'com.netease.youliao:newsfeeds-data:x.x'
 ```
-
-为了自动升级到最新的sdk，建议写成下面的形式：
-
-```java
-compile 'com.netease.youliao:newsfeeds-data:1.2+'
-```
-
 
 - aar本地依赖
 
@@ -105,8 +109,6 @@ new NNewsFeedsSDK.Builder()
     .setAppKey("4c92fbfc2e6e7046d6e3cafced******")
     .setAppSecret("b430f8362f9f65bc09a639f62b******")
     .setContext(getApplicationContext())
-    .setCacheEnabled(true)
-    .setMaxCacheTime(1 * 24 * 60 * 60 * 1000)
     .setLogLevel(NFLogUtil.LOG_DEBUG)
     .build();
 ```
@@ -120,8 +122,6 @@ new NNewsFeedsSDK.Builder()
 setAppKey | appKey | String | 分配给应用的唯一标识，用户在CMS后台新建应用时生成
 setAppSecret | appSecret | String |  分配给应用的唯一秘钥，用户在CMS后台新建应用时生成
 setContext | context | Context | 传入app的Context，建议传入ApplicationContext
-setCacheEnabled | cacheEnabled | boolean | 是否开启新闻正文文本和图片缓存，默认开启
-setMaxCacheTime | maxCacheTime | long | 配置新闻正文文本和图片最大缓存时长, 单位毫秒，默认7天
 setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等级，指定哪些日志需要输出
 
 ### 3. 权限（v1.2新增）
@@ -152,7 +152,7 @@ setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等�
 ```
 
 
-如果您打包App时的targetSdkVersion >= 23：请先获取到SDK要求的所有权限，然后调用SDK获取到的新闻列表和新闻详情才会包含广告数据。否则SDK返回的新闻列表和新闻详情将不包含广告数据。我们建议您在App启动时就去获取SDK需要的权限。您可以参考如下权限处理示例代码，权限示例代码写在Activity中：
+如果您打包App时的targetSdkVersion >= 23：请先获取到SDK要求的所有权限，然后调用SDK获取到的新闻列表和新闻详情才会包含广告数据。否则SDK返回的新闻列表和新闻详情将不包含广告数据。我们建议您在App启动时就去获取SDK需要的权限。您可以参考如下权限处理示例代码，权限示例代码建议写在启动页SplashActivity中：
 
 ```java
 @Override
@@ -307,6 +307,11 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 -keep class android.support.v4.app.NotificationCompat { *; }
 -keep class android.support.v4.app.NotificationCompat$Builder { *; }
+
+# fastjson
+-keep class javax.ws.rs.** { *; }
+-dontwarn com.alibaba.fastjson.**
+-keep class com.alibaba.fastjson.** { *; }
 ```
 
 
@@ -332,19 +337,7 @@ new NNewsFeedsSDK.Builder()
 
 - Log等级
 
-Log等级由@NFLogLevel约束，只能取@NFLogLevel指定的整数值
-
-```
-@IntDef({NNFLogUtil.LOG_NONE,
-        NNFLogUtil.LOG_ERROR,
-        NNFLogUtil.LOG_WARN,
-        NNFLogUtil.LOG_INFO,
-        NNFLogUtil.LOG_DEBUG,
-        NNFLogUtil.LOG_VERBOSE})
-@Retention(RetentionPolicy.SOURCE)
-public @interface NNFLogLevel {
-}
-```
+Log等级指的是Android Studio等开发工具的控制台Log等级，指定哪些日志需要输出。Log等级只能取指定的整数值：
 
 Log等级 | 说明 
 ---|---
@@ -471,7 +464,7 @@ public void loadNewsList(String channelid, int num, int loadType, NNFHttpRequest
 - 调用
 
 ```java
-NNewsFeedsSDK.getInstance().loadNewsList(channelid, new NNFHttpRequestListener<NNFNews>() {
+NNewsFeedsSDK.getInstance().loadNewsList(channelId, 10, isRefresh ? 1 : 0, GeoInfo.getLongitude(), GeoInfo.getLatitude(), new NNFHttpRequestListener<NNFNews>() {
     @Override
     public void onHttpSuccessResponse(NNFNews result) {
 
@@ -488,11 +481,9 @@ NNewsFeedsSDK.getInstance().loadNewsList(channelid, new NNFHttpRequestListener<N
 
 loadType为新闻列表内容组合类型，取值0或1，默认取0。取值说明如下： 
 
-0：接口返回推荐系统或用户编辑的普通新闻。
+1：下拉刷新时，传入1，返回普通新闻、头图新闻、置顶新闻。
 
-1：接口返回推荐系统或用户编辑的普通新闻、接口返回用户编辑的头图新闻、用户编辑的置顶新闻
-
-一个典型的Feed流，上拉加载更多时，传入0；下拉刷新时，传入1。
+0：上拉加载更多时，传入0，只返回普通新闻。
 
 - 请求参数 num
 
@@ -504,21 +495,84 @@ num为期望返回的新闻列表长度，默认10条。num仅为普通新闻的
 
 字段 | 类型 | 描述
 ---|---|---
+banners | NNFNewsInfo[] | 轮播图或头图新闻
+tops | NNFNewsInfo[] | 置顶新闻
 infos| NNFNewsInfo[]| 普通新闻
-banners | NNFNewsInfo[] |轮播图或头图新闻
-tops | NNFNewsInfo[] |置顶新闻
 
-其中，单个新闻（NNFNewsInfo）按类型（infoType）可分为：文章(article)、图集(picset)、视频(video)。数据模型具体字段说明，请参考附录。
-
-从v1.2开始，我们的SDK提供广告功能，如果拉取广告的必要权限均被授权，会在轮播图（banners），普通新闻（infos）出现广告。广告具体说明，请参考广告模块。
+其中，单个新闻（NNFNewsInfo）按类型（infoType）可分为：文章(article)、图集(picset)、视频(video)、广告(ad)。数据模型NNFNewsInfo具体字段说明，请参考附录。
 
 (1) 轮播图
 
-如果拉取广告的必要权限均被授权，以loadType 为 1 请求新闻列表时，若返回的 NNFNews.banners 有数据，即表示有轮播图，那么会在轮播图中随机插入一条广告，且广告不是在第一个位置。
+轮播图包含的新闻类型有：文章(article)、图集(picset)、广告(ad)。
 
-(2) 普通新闻列表
+这里要注意的是，只有在拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的轮播图中才可能出现广告。
 
-如果拉取广告的必要权限均被授权，当请求的新闻条数小于10条时，不会出现广告；当请求的新闻条数大于等于10，小于15时，在第4条位置出现广告；当请求条数大于等于15条时，第4、10条位置将会出现广告。
+(2) 置顶新闻
+
+置顶新闻包含的新闻类型有：文章(article)、图集(picset)、视频(video)。
+
+这里要注意的是，置顶新闻不含广告(ad)。
+
+(3) 普通新闻列表
+
+普通新闻包含的新闻类型有：文章(article)、图集(picset)、视频(video)、广告(ad)。
+
+这里要注意的是，只有在拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的普通新闻列表中才可能出现广告。
+
+下拉刷新时，接口返回头图新闻、置顶新闻、普通新闻，典型的Feed流展示逻辑是按照从上到下为头图新闻、置顶新闻、普通新闻的顺序，将下拉刷新的数据插入到当前Feed流头部；上拉加载更多时，接口只返回普通新闻，典型的Feed流展示逻辑是将上拉加载更多的数据追加到当前Feed流尾部。App开发人员可参考如下示例代码进行数据展示：
+
+```java
+private void bindData(NNFNews news) {
+    ...
+    // 新增的普通新闻的条数
+    int delta = 0;
+    // 移除旧的头图和置顶
+    if (isRefresh) {
+        // 移除原有头图
+        removeBanner();
+        // 删除原有置顶
+        removeTops();
+    }
+    
+    if (null != news.infos) {
+        // 解析普通新闻
+        NNFNewsInfo[] newsInfos = news.infos;
+        if (null != newsInfos && newsInfos.length > 0) {
+            int length = newsInfos.length;
+            delta = length;
+            if(isRefresh) { // 下拉刷新
+	            for (int i = 0; i < length; i++) {
+	                NNFNewsInfo newsInfo = newsInfos[i];
+	                // 在头部插入
+	                addTopImp(newsInfo);
+	            }
+            } else { // 上拉加载更多
+	            for (int i = 0; i < length; i++) {
+	                NNFNewsInfo newsInfo = newsInfos[i];
+	                // 添加到尾部
+	                addBottomImp(newsInfo);
+		         }
+            }
+        }
+    }
+    
+    // 展示新的头图和置顶
+    if (isRefresh) {
+        // 解析置顶
+        NNFNewsInfo[] tops = news.tops;
+        // 在头部插入
+        bindTops(tops);
+
+        // 解析头图
+        NNFNewsInfo[] banners = news.banners;
+        // 在头部插入
+        bindBanner(banners);
+    }
+
+    // 刷新视图
+    mContactView.UpdateNewsListView(delta, isRefresh);
+}
+```
 
 - 错误码说明
 
@@ -529,6 +583,67 @@ errorCode == 4000    表示后台管理系统删除了某个频道，App在未�
 
 errorCode == 4004    表示该频道下拉取不到任何的新闻列表信息，暂时没有可推荐的新闻，会返回code为4004的错误
 ```
+
+- 新闻点击事件响应
+
+当新闻列表中的单个新闻（NNFNewsInfo）被点击时，App开发人员需要根据新闻类型（infoType）实现对应的点击事件响应。例如，当infoType为video时，需要开始播放视频或者跳转到视频播放页面；当infoType为ad时，需要跳转到广告落地页面；当infoType为article时，需要跳转到文章详情页面；当infoType为picset时，需要跳转到图集展示页面。可参考如下代码片段：
+
+```java
+String infoType = newsInfo.infoType;
+switch (infoType){
+	case "video":
+	    // 开始视频播放
+	    ...
+	    break;
+	case "ad":
+	    // 跳转到广告落地页
+	    NNFAdCell ad = newsInfo.ad;
+	    if (null != ad) {
+	        NNewsFeedsSDK.getInstance().onAdClicked(ad.adInfo, view);
+	    }
+	    break;
+	case "article":
+	    // 跳转到文章类新闻展示页
+	    NewsDetailsWebActivity.start(context, newsInfo);
+	    break;
+	case "picset":
+	    // 跳转到图集类新闻展示页
+	    GalleryActivity.start(context, newsInfo);
+	    break;
+}
+```
+
+单个新闻数据模型NNFNewsInfo部分字段说明如下：
+
+名称 | 类型 | 描述
+---|---|---|---
+infoId| String| 新闻ID
+infoType| String| 新闻类型：文章(article)、图集(picset)、视频(video)
+thumbnails | NNFThumbnailInfo[] | 新闻缩略图
+imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：缩略图模式，0：无图
+num | int | 图集中图片数量，仅当infoType为图集picset时才有值
+videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
+ad | NNFAdCell | 广告信息，当且仅当infoType为ad时才有值 
+
+由NNFNewsInfo数据模型可知，当 infoType 为 video 时，NNFNewsInfo中的videos字段会给出视频源信息，App开发人员可根据该视频源信息完成视频的下载、播放等交互逻辑。
+
+当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。广告视图的渲染由App开发人员完成。我们的SDK封装了广告点击后的落地页，点击广告时，App开发人员可以直接调用 onAdClicked 接口跳转到广告落地页。SDK内部会进行广告曝光和广告计费。
+
+广告点击接口定义
+
+```java
+public void onAdClicked(NNFAdInfo adInfo, View view)
+```
+
+其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
+
+广告点击接口调用
+
+```java
+NNewsFeedsSDK.getInstance().onAdClicked(ad.adInfo, view);
+```
+
+至于其他类型的新闻（infoType为article/picset），需要App开发人员自行实现具体的详情展示页面，通过调用 loadNewsDetails 接口获取详情数据 NNFNewsDetails。
 
 ## 加载新闻详情
 
@@ -560,373 +675,27 @@ NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoType, newsInfo.infoId, 
 ```
 - 接口返回 NNFNewsDetails
 
-从v1.2开始，我们的SDK提供广告功能，如果拉取广告的必要权限均被授权，用户请求新闻详情成功后， 返回的 NNFNewsDetails 中可能包含广告。广告具体说明，请参考广告模块。
-
-
-## 文章类新闻正文WebView
-
-SDK将infoType为文章（article）的新闻正文的展示封装成NNFNewsDetailsWebView。
-
-第一步，在布局文件中添加
-
-```java
-<com.netease.youliao.newsfeeds.webview.NNFNewsDetailsWebView
-    android:id="@+id/webview"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"/>
-```
-
-第二步，在Activity或Fragment中实例化NNFNewsDetailsWebView
-
-
-```java
-private NNFNewsDetailsWebView mNewsDetailsWebView;
-
-mNewsDetailsWebView = (NNFNewsDetailsWebView) this.findViewById(R.id.webview);
-```
-
-第三步，加载新闻正文
-
-- 接口定义
-
-```java
-/**
- * @param newsInfo        列表页可展现的新闻信息
- * @param webViewListener
- */
-public void loadNewsDetails(NNFNewsInfo newsInfo, NNFWebViewListener webViewListener)
-```
-
-
-```java
-/**
- * @param newsInfo        列表页可展现的新闻信息
- * @param reportAction    当WebView销毁时，是否上报新闻正文的浏览时长和浏览进度。默认为true。
- * @param webViewListener
- */
-public void loadNewsDetails(NNFNewsInfo newsInfo, boolean reportAction, NNFWebViewListener webViewListener);
-```
-
-- 参数 reportAction
-
-注意，reportAction 为 boolean类型，表示当WebView销毁时，是否上报新闻正文的浏览时长和浏览进度。默认为true。详细说明请参考用户行为统计。
-
-- 接口调用
-
-```java
-mNewsDetailsWebView.loadNewsDetails(newsInfo, new NNFWebViewListener() {
-    @Override
-    public void onWebViewPageFinished() {
-        Log.d(TAG, "新闻详情请求成功");
-    }
-
-    @Override
-    public void onWebViewPageFailure(int errCode, String errorMsg) {
-        Log.e(TAG, "新闻详情请求失败->@code = " + errCode + ", @errorMsg = " + errorMsg);
-    }
-
-    @Override
-    public void onWebImageClick(int clickedIndex, String src, NNFImageInfo[] imageInfos) {
-
-    }
-    
-    @Override
-    public void onRelatedNewsClick(NNFNewsInfo newsInfo) {
-        
-    }
-
-    @Override
-    public void onIssueReporting(String issueDescription) {
-        
-    }
-
-    @Override
-    public void onIssueReportFinished() {
-        
-    }
-});
-```
-
-若用户不希望NNFNewsDetailsWebView自动上报新闻正文的浏览时长和浏览进度，可按照如下示例进行调用：
-
-```java
-mNewsDetailsWebView.loadNewsDetails(newsInfo, false, webViewListener);
-```
-
-- NNFNewsDetailsWebView回调接口说明
-
-NNFWebViewListener为回调抽象类，提供文章类新闻正文NNFNewsDetailsWebView交互事件回调，目前支持的交互事件回调有：网页主框架加载完毕、网页主框架加载失败、正文中的图片被点击、文章详情页面跳转到报错页面的回调、报错完成返回到文章详情页面的回调。
-
-a. 网页主框架加载完毕
-
-```java
-public abstract void onWebViewPageFinished();
-```
-
-SDK内部为WebView设置WebViewClient，在WebViewClient的onPageFinished中调用onWebViewPageFinished。表示网页主框架加载完毕。
-
-b. 网页主框架加载失败
-
-```java
-/**
- *
- * @param errCode 错误码
- * @param errorMsg 错误原因
- */
-public abstract void onWebViewPageFailure(int errCode, String errorMsg);
-```
-
-网络请求失败时调用。其中errCode为错误码，errorMsg为错误原因。
-
-c. 正文中的图片被点击
-
-```java
-/**
- * @param clickedIndex 被点击图片在图片数组中的索引
- * @param source       图片原始链接
- * @param imageInfos   图片数组
- */
-public abstract void onWebImageClick(int clickedIndex, String source, NNFImageInfo[] imageInfos);
-```
-
-当正文中的图片被点击时，触发该回调。其中，clickedIndex为被点击图片在图片数组中的索引，source为图片原始链接；imageInfos为文章中的图片数组。
-
-d. 点击相关推荐（v1.2新增）
-
-```java
-/**
- * 文章类新闻详情页面相关推荐新闻点击时的回调
- *
- * @param newsInfo
- */
-public void onRelatedNewsClick(NNFNewsInfo newsInfo)
-```
-阅读完文章正文后，在文章正文底部，可能会有该篇文章的相关推荐，点击相关推荐时触发该回调。
-
-e. 文章详情页面跳转到报错页面的回调（v1.2新增）
-
-```java
-/**
- * 举报中
- *
- * @param issueDescription 举报描述
- */
-public void onIssueReporting(String issueDescription)
-```
-点击文章底部的举报按钮时，弹出举报选择框，触发该回调。其中issueDescription为报错页面的相关描述，方便更改页面title之类的参数。
-
-f. 报错完成返回到文章详情页面的回调（v1.2新增）
-
-```java
-/**
- * 举报完成
- */
-public void onIssueReportFinished()
-```
-
-报错操作结束后触发该回调。
-
-## 文章类新闻正文缓存
-
-SDK支持将infoType为文章（article）的新闻正文的文本和图片进行缓存。
-
-### 1. 正文缓存开启
-
-通过该接口配置是否开启正文缓存，默认情况为true。
-
-- 定义
-
-```java
-/**
- * 是否开启WebView缓存，默认开启
- *
- * @param cacheEnabled
- * @return
- */
-public Builder setCacheEnabled(boolean cacheEnabled)
-```
-
-- 调用
-
-在初始化SDK的时候调用
-
-```java
-// 初始化
-new NNewsFeedsSDK.Builder()
-        ...
-        .setCacheEnabled(false)
-        .build();
-```
-
-### 2. 配置最大缓存时长
-
-在开启了正文缓存的前提下，可配置正文的文本和图片缓存的最大时长，单位毫秒，默认7天。
-
-- 定义
-
-```java
-/**
- * 配置新闻详情文本和图片最大缓存时长
- *
- * @param maxCacheTime 最大缓存时长，单位毫秒，默认7*24*60*60*1000
- */
-public Builder setMaxCacheTime(long maxCacheTime);
-```
-
-- 调用
-
-在初始化SDK的时候调用
-
-```java
-// 初始化
-new NNewsFeedsSDK.Builder()
-        ...
-        .setMaxCacheTime(3 * 24 * 60 * 60 * 1000)
-        .build();
-```
-
-### 3. 获取新闻正文图片缓存
-
-在开启了正文缓存的前提下，SDK会对infoType为文章（article）的新闻正文的文本和图片进行缓存。
-
-若用户有对正文展示的图片进行操作（例如查看大图）的需求，调用该接口可以获取已经缓存的图片，若正文图片未缓存，SDK会下载该正文图片并缓存该图片到本地，可以避免同一张图片加载两次而占用过多的存储。
-
-- 定义
-
-```java
-/**
- * 从缓存中加载新闻图片，如果本地没有，则从网络下载，并缓存本地
- *
- * @param infoId   新闻ID
- * @param srcUrl   图片原地址
- * @param listener 图片下载监听器
- * @param isMain   true: 回调必须在主线程，默认为true; false: 回调可在非主线程
- */
-public void loadImgFromCache(String infoId, String srcUrl, final NNFDownloadRequestListener listener, boolean isMain)
-
-/**
- * 从缓存中加载新闻图片，如果本地没有，则从网络下载，并缓存本地
- *
- * @param infoId   新闻ID
- * @param srcUrl   图片原地址
- * @param listener 图片下载监听器
- */
-public void loadImgFromCache(String infoId, String srcUrl, final NNFDownloadRequestListener listener);
-```
-
-- 调用
-
-```java
-// 调用SDK接口获取图片
-NNewsFeedsSDK.getInstance().loadImgFromCache(mInfoId, url, new NNFDownloadRequestListener() {
-    @Override
-    public void onDownloadProgressUpdate(long contentLength, long bytesRead) {
-
-    }
-
-    @Override
-    public void onDownloadSuccess(File file) {
-
-    }
-
-    @Override
-    public void onDownloadFailure(Exception e) {
-
-    }
-});
-```
-
-- 图片获取回调接口说明
-
-NNFDownloadRequestListener接口类，为调用SDK接口获取图片时的图片下载监听器。该监听器包含以下回调函数：
-
-a. 图片文件下载进度
-
-```java
-/**
- * 图片文件下载进度
- *
- * @param contentLength 图片文件长度
- * @param bytesRead     已下载长度
- */
-void onDownloadProgressUpdate(long contentLength, long bytesRead);
-```
-
-该回调函数用于监听图片文件下载进度。其中，contentLength为图片文件长度；bytesRead为文件已下载长度。
-
-
-b. 图片下载成功
-
-```java
-/**
- * 图片下载成功
- *
- * @param file 已缓存或已下载的文件
- */
-void onDownloadSuccess(File file);
-```
-
-当图片下载成功时触发该回调。其中，file为已下载的文件。
-
-c. 图片下载异常信息
-
-```java
-/**
- * 图片下载异常信息
- *
- * @param e 异常信息
- */
-void onDownloadFailure(Exception e);
-```
-
-### 4. 清除某一条新闻的正文缓存
-
-用户可根据一定的缓存清除策略删除某一新闻的正文及图片缓存。
-
-- 定义
-
-```java
-/**
-* 根据新闻ID删除新闻详情缓存
-*
-* @param infoId 新闻ID
-*/
-public void removeNewsDetails(String infoId);
-```
-
-- 调用
-
-```java
-NNewsFeedsSDK.getInstance().removeNewsDetails(infoId);
-```
-
-### 5. 清除所有的正文缓存
-
-用户可手动清除所有的新闻正文及图片缓存。
-
-- 定义
-
-```java
-/**
- * 清空缓存的新闻文本和图片
- *
- * @param listener 执行结果回调
- */
-public void clearDetailsCache(NNFClearDetailsCacheListener listener);
-```
-
-- 调用
-
-SDK将清除缓存的操作放在线程中执行，待执行完毕后触发回调`onClearedFinish`。
-
-```java
-NNewsFeedsSDK.getInstance().clearDetailsCache(new NNFClearDetailsCacheListener() {
-    @Override
-    public void onClearedFinish() {
-        
-    }
-});
-```
+新闻详情NNFNewsDetails字段说明：
+
+名称 | 类型 | 示例 | 描述
+---|---|---|---
+infoId| String| | 新闻ID
+infoType| String| article/picset | 新闻类型，文章/图集
+category | String || 新闻类目
+title | String || 新闻标题
+publishTime | String || 发布时间
+source | String || 新闻来源
+sourceLink | String || 原文地址
+content | String |  | 新闻正文
+imgs | NNFImageInfo[] |  | 图片列表
+tag | String |  | 标签
+ad | NNFAdCell | | 广告
+
+从模型字段描述可知，当NNFNewsDetails.infoType为article时，文章类新闻正文由content字段给出，为支持图片异步加载，content中img标签被替换成了`${{index}}$`，index从0开始。正文中图片链接存于imgs字段。具体说明请参考网易有料Api Server文档。
+
+当NNFNewsDetails.infoType为picset时，imgs字段表示图集中图片列表。
+
+从v1.2开始，如果拉取广告的必要权限均被授权，用户请求新闻详情成功后，返回的 NNFNewsDetails 中可能包含广告，广告信息存于ad字段。广告的渲染与点击操作与新闻列表中的广告类似。
 
 ## 用户行为统计
 
@@ -980,98 +749,195 @@ public void trackNewsBrowse(NNFNewsInfo newsInfo, long cost, double progress);
 NNFTracker.getInstance().trackNewsBrowse(newsInfo, cost, progress);
 ```
 
-### 新闻正文浏览事件
+- 图集浏览行为统计
 
-SDK将infoType为文章（article）的新闻正文的展示封装成NNFNewsDetailsWebView。同时，为便于新闻正文浏览事件的统计，当WebView销毁时，我们默认上报新闻正文的浏览时长和浏览进度。
-
-用户若不希望上报浏览事件或想自主上报，则可在 NNFNewsDetailsWebView 加载数据时，将 reportAction 置为false即可。 
-
-- 数据加载接口定义
+通过 loadNewsDetails 接口请求图集详情数据，请求成功时，可以认为图集浏览开始，记录开始时间。
 
 ```java
-/**
- * @param newsInfo        列表页可展现的新闻信息
- * @param reportAction    当WebView销毁时，是否上报新闻正文的浏览时长和浏览进度。默认为true。
- * @param webViewListener
- */
-public void loadNewsDetails(NNFNewsInfo newsInfo, boolean reportAction, NNFWebViewListener webViewListener);
+NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoType, newsInfo.infoId, newsInfo.producer, new NNFHttpRequestListener<NNFNewsDetails>() {
+    @Override
+    public void onHttpSuccessResponse(NNFNewsDetails result) {
+    	// 记录用户行为开始时间为网络请求成功后的时间
+    	mStartTime = System.currentTimeMillis();
+    }
+    
+    @Override
+    public void onHttpErrorResponse(int code, String errorMsg) {
+    
+    }
+});
 ```
 
-- 禁止上报浏览事件
+页面退出，例如Activity被销毁时，可以认为图集浏览结束，上报图集浏览结束事件。其中，图集浏览时间 = 当前时间 - 开始时间；浏览进度 =（当前图片序号 + 1）/ 总的图片数。
 
 ```java
-mNewsDetailsWebView.loadNewsDetails(newsInfo, false, webViewListener);
-```
+@Override
+public void onDestroy() {
+    super.onDestroy();
 
-
-
-## 广告（v1.2新增）
-
-从v1.2开始，我们的SDK内嵌了腾讯广点通广告SDK，用户在使用本SDK的时候，确保工程中未使用广点通的SDK。
-
-如果拉取广告的必要权限均被授权，会在轮播图，普通新闻列表和新闻详情出现广告。
-
-(1) 轮播图
-
-如果拉取广告的必要权限均被授权，以loadType 为 1 请求新闻列表时，若返回的 NNFNews.banners 有数据，即表示有轮播图，那么会在轮播图中随机插入一条广告，且广告不是在第一个位置。
-
-(2) 普通新闻
-
-如果拉取广告的必要权限均被授权，当请求的新闻条数小于10条时，不会出现广告；当请求的新闻条数大于等于10，小于15时，在第4条位置出现广告；当请求条数大于等于15条时，第4、10条位置将会出现广告。
-
-(3) 新闻详情
-
-如果拉取广告的必要权限均被授权，拉取新闻详情时，若成功拉取到广告，则返回的NNFNewsDetails中包含广告信息。
-
-### 广告渲染
-
-SDK返回给用户的广告数据模型为：
-
-- 单条广告数据模型：NNFAdInfo
-
-名称 | 类型 | 描述
----|---|---|---
-title | String | 标题，短文字,14字以内
-desc | String | 描述，长文字,30字以内
-iconUrl | String | 获取Icon图片地址
-imgUrl | String | 获取大图地址
-isApp | boolean | 返回是否为APP广告
-appStatus | int | 获取应用状态，0：未开始下载；1：已安装；2：需要更新; 4:下载中; 8:下载完成; 16:下载失败
-progress | int | 获取APP类广告下载中的下载进度
-downloadCount | long | 获取APP类广告的下载数
-appScore | int | 获取应用评级
-appPrice | Double | 获取APP类应用价格
-
-返回的广告数据模型NNFAdInfo包含展示一条广告所需的标题、描述、图片地址等等。广告视图的渲染由app开发人员完成。
-
-### 广告点击事件
-
-- 定义
-
-```java
-/**
- * 广告点击时调用
- *
- * @param adInfo 广告数据
- * @param view   被点击的view组件
- */
-public void onAdClicked(NNFAdInfo adInfo, View view)
-```
-
-- 调用示例
-
-```java
-NNFAdCell adParams = mNewsDetails.ad;
-if (null != adParams) {
-    NNewsFeedsSDK.getInstance().onAdClicked(adParams.adInfo, NNFNewsDetailsWebView.this);
+	// 用户行为上报，表明图集浏览结束
+    long cost = System.currentTimeMillis() - mStartTime;
+    NNFTracker.getInstance().trackNewsBrowse(newsInfo, cost, (mCurrPos + 1) * 1.0 / mPhotoSets.length);
 }
 ```
 
-广告SDK内部封装了广告点击后的页面跳转逻辑，用户只需调用 onAdClicked 传入广告数据实例 adInfo 及 被点击的view 实例。SDK内部会进行广告曝光和广告计费。
+- 视频浏览行为统计
 
-## 推送（v1.2新增）
+App开发人员需要监听视频播放各个过程。开始视频播放时，记录视频开始播放时间。当视频暂停或播放结束时，上报视频浏览事件。其中，播放时长 = 当前时间 - 开始播放时间；播放进度 = 当前播放帧时间 / 视频总时长。示例代码片段如下：
 
-我们的SDK依赖了推送SDK，使用的是个推的第三方推送SDK，相关使用参考个推官网开发使用文档：http://docs.getui.com/mobile/android/androidstudio_maven/
+```java
+@Override
+public void onPlay() {
+    mStartPlayTime = System.currentTimeMillis();
+    // 上报用户行为：视频开始播放
+    NNFTracker.getInstance().trackNewsClick(mNewsInfo);
+}
+
+@Override
+public void onError() {
+
+}
+
+@Override
+public void onAutoComplete() {
+    onVideoBrowseEnd();
+}
+
+@Override
+public void onPause() {
+    // 上报用户行为：视频播放结束
+    onVideoBrowseEnd();
+}
+
+public void onVideoBrowseEnd() {
+    // 上报用户行为：视频播放结束
+    mProgress = mVideoPlayer.getVideoProgress();
+    long cost = System.currentTimeMillis() - mStartPlayTime;
+    NNFTracker.getInstance().trackNewsBrowse(mNewsInfo, cost, mProgress);
+}
+```
+
+获取视频播放进度示例代码如下：
+
+```java
+/**
+ * 获取视频播放进度，转化为获取播放进度条的进度
+ *
+ * @return
+ */
+public double getVideoProgress() {
+    int max = bottomProgressBar.getMax();
+    return max == 0 ? 0 : bottomProgressBar.getProgress() * 1.0 / max;
+}
+```
+
+- 文章类新闻浏览事件
+
+文章类新闻一般通过WebView展示，由于在阅读文章期间，WebView可能被遮挡或App退到后台导致WebView不可见，WebView不可见的时间不应该计算到浏览时间内。因此，文章类新闻的浏览时间即转化为WebView可见的累积时间。
+
+当WebView页面加载成功时，可以认为浏览事件开始，记录开始时间，示例代码如下：
+
+```java
+/**
+ * 浏览时长统计
+ */
+public void onPageFinished(WebView view, String url) {
+    if (null == mEventTimer) {
+        mEventTimer = new EventTimer(TimeUnit.MILLISECONDS);
+    } else {
+        mEventTimer.reset();
+    }
+}
+```
+
+可通过 EventTimer 来保存浏览事件的开始时间、累积时间等：
+
+```java
+public static class EventTimer {
+    EventTimer(TimeUnit timeUnit) {
+        this.occurTime = System.currentTimeMillis();
+        this.startTime = System.currentTimeMillis();
+        this.timeUnit = timeUnit;
+        this.eventAccumulatedDuration = 0;
+    }
+    ...
+    private final TimeUnit timeUnit;
+    private long startTime;
+    private long eventAccumulatedDuration;
+}
+```
+
+可以通过重写WebView的onVisibilityChanged方法，监听WebView的可见状态。当WebView可见时，重置开始时间；当WebView不可见时，计算浏览累积时间并保存。累积时间 = 累积时间 +（当前时间 - 开始时间）。示例代码如下：
+
+```java
+/**
+ * 浏览时长统计
+ *
+ * @param changedView
+ * @param visibility
+ */
+@Override
+protected void onVisibilityChanged(View changedView, int visibility) {
+    super.onVisibilityChanged(changedView, visibility);
+    if (visibility == View.VISIBLE) { // WebView进入前台
+        if (mEventTimer != null) {
+            mEventTimer.setStartTime(System.currentTimeMillis());
+        }
+    } else { // WebView被遮挡或进入后台
+        if (mEventTimer != null) {
+            long eventAccumulatedDuration = mEventTimer.getEventAccumulatedDuration() + System.currentTimeMillis() - mEventTimer.getStartTime();
+            mEventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
+        }
+    }
+}
+```
+
+可通过重写WebView的onScrollChanged方法实时监测滚动条，用于统计文章新闻的浏览进度。由于用户可能看完一篇文章后，来回上下滑动滚动条重看已看过的文章内容，因此，用户退出文章详情页面时，WebView滚动条的位置并不能准确记录用户的浏览进度，我们推荐App开发者记录WebView可见期间WebView滚动条的最大偏移量作为计算用户浏览进度的依据。示例代码如下：
+
+```java
+/**
+ * 实时监测滚动条
+ *
+ * @param l
+ * @param t
+ * @param oldl
+ * @param oldt
+ */
+@Override
+protected void onScrollChanged(int l, int t, int oldl, int oldt) {
+    super.onScrollChanged(l, t, oldl, oldt);
+    mMaxScrollOffset = Math.max(mMaxScrollOffset, t);
+}
+```
+
+当 WebView 从父控件移除时，可以认为浏览事件结束，上报浏览结束事件。重写WebView的onDetachedFromWindow方法，可以监听WebView移除事件。上报的浏览时长cost为WebView可见的累积时间，浏览进度progress可取值为（垂直滚动条最大偏移量 + WebView高度）/ 垂直滚动条滚动范围。示例代码如下：
+
+```java
+/**
+ * 浏览时长统计
+ */
+@Override
+protected void onDetachedFromWindow() {
+    super.onDetachedFromWindow();
+    NNFLogUtil.v(TAG, "onDetachedFromWindow");
+    // 发送统计时长和浏览进度等信息
+    long cost = null == mEventTimer ? 0 : mEventTimer.duration();
+    double progress = 0;
+    int vScrollOffset = computeVerticalScrollOffset();
+    vScrollOffset = Math.max(mMaxScrollOffset, vScrollOffset);
+    int vScrollRange = computeVerticalScrollRange();
+    int contentHeight = this.getContentHeight();
+    int measuredHeight = this.getMeasuredHeight();
+    if (vScrollRange > 0 && contentHeight > 0) {
+        progress = (vScrollOffset + measuredHeight) * 1.0 / vScrollRange;
+    }
+
+    if (null != mNewsInfo) {
+        NNFTracker.getInstance().trackNewsBrowse(mNewsInfo, cost, progress);
+    }
+    mEventTimer = null;
+}
+```
 
 ## 附录
 
@@ -1151,7 +1017,7 @@ width | int | 缩略图宽度
 名称 | 类型 | 示例 | 描述
 ---|---|---|---
 infoId| String| | 新闻ID
-infoType| String| article/picset/video | 新闻类型，文章/图集/视频
+infoType| String| article/picset | 新闻类型，文章/图集
 category | String || 新闻类目
 title | String || 新闻标题
 publishTime | String || 发布时间
