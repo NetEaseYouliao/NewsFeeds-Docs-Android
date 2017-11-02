@@ -48,7 +48,7 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前最新版分别为1.2和1.2.4
+第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前最新版均为1.2.4
 
 
 ```java
@@ -75,7 +75,7 @@ allprojects {
 }
 ```
 
-第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版分别为1.2和1.2.4
+第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版均为1.2.4
 
 我们的data-sdk和ui-sdk内部依赖了一些第三方库，
 

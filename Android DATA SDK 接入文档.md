@@ -50,7 +50,7 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.2
+第二步，在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.2.4
 
 
 ```java
@@ -76,7 +76,7 @@ allprojects {
 }
 ```
 
-第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版为1.2
+第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版为1.2.4
 
 我们的data-sdk内部依赖了一些第三方库：
 
@@ -100,33 +100,9 @@ dependencies {
 }
 ```
 
-### 2. 初始化
+### 2. 权限（v1.2新增）
 
-在自定义Application的OnCreate中添加以下代码，初始化我们的SDK
-
-```
-new NNewsFeedsSDK.Builder()
-    .setAppKey("4c92fbfc2e6e7046d6e3cafced******")
-    .setAppSecret("b430f8362f9f65bc09a639f62b******")
-    .setContext(getApplicationContext())
-    .setLogLevel(NFLogUtil.LOG_DEBUG)
-    .build();
-```
-
-上述初始化代码生成一个NNewsFeedsSDK实例，后续可通过NNewsFeedsSDK.getInstance()拿到该实例进行接口调用。
-
-初始化接口及参数说明
-
-接口 | 参数 | 类型 | 描述
----|---|---|---
-setAppKey | appKey | String | 分配给应用的唯一标识，用户在CMS后台新建应用时生成
-setAppSecret | appSecret | String |  分配给应用的唯一秘钥，用户在CMS后台新建应用时生成
-setContext | context | Context | 传入app的Context，建议传入ApplicationContext
-setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等级，指定哪些日志需要输出
-
-### 3. 权限（v1.2新增）
-
-从v1.2开始，我们的SDK内部提供广告功能，为了成功拉取到广告，需要在AndroidManifest.xml中添加权限声明：
+从v1.2开始，我们的SDK内部提供广告功能，为了成功拉取到广告，需要在CMS上开启广告业务开关，并在AndroidManifest.xml中添加权限声明：
 
 ```java
 <uses-permission android:name="android.permission.INTERNET" />
@@ -150,7 +126,6 @@ setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等�
     android:name="com.qq.e.ads.ADActivity"
     android:configChanges="keyboard|keyboardHidden|orientation|screenSize"/>
 ```
-
 
 如果您打包App时的targetSdkVersion >= 23：请先获取到SDK要求的所有权限，然后调用SDK获取到的新闻列表和新闻详情才会包含广告数据。否则SDK返回的新闻列表和新闻详情将不包含广告数据。我们建议您在App启动时就去获取SDK需要的权限。您可以参考如下权限处理示例代码，权限示例代码建议写在启动页SplashActivity中：
 
@@ -225,7 +200,7 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 ```
 
-### 4. 文件访问兼容性（v1.2新增）
+### 3. 文件访问兼容性（v1.2新增）
 
 由于SDK返回的广告可能是App下载类广告，因此，当targetSDKVersion >= 24时，需要进行文件访问兼容处理。如果您打包时的targetSDKVersion >= 24，为了让SDK能够正常下载、安装App类广告，必须按照下面的三个步骤做兼容性处理。注意：如果您的targetSDKVersion < 24，不需要做这个兼容处理。
 
@@ -275,7 +250,7 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 （3）混淆配置文件中加上：`-keep class android.support.v4.**{ *;}`，避免support-V4包中的FileProvider代码被混淆。
 
-### 5. 混淆
+### 4. 混淆
 
 若您的App开启了混淆，请为我们的SDK添加下述混淆规则
 
@@ -313,6 +288,30 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 -dontwarn com.alibaba.fastjson.**
 -keep class com.alibaba.fastjson.** { *; }
 ```
+
+## 初始化
+
+在自定义Application的OnCreate中添加以下代码，初始化我们的SDK
+
+```
+new NNewsFeedsSDK.Builder()
+    .setAppKey("4c92fbfc2e6e7046d6e3cafced******")
+    .setAppSecret("b430f8362f9f65bc09a639f62b******")
+    .setContext(getApplicationContext())
+    .setLogLevel(NFLogUtil.LOG_DEBUG)
+    .build();
+```
+
+上述初始化代码生成一个NNewsFeedsSDK实例，后续可通过NNewsFeedsSDK.getInstance()拿到该实例进行接口调用。
+
+初始化接口及参数说明
+
+接口 | 参数 | 类型 | 描述
+---|---|---|---
+setAppKey | appKey | String | 分配给应用的唯一标识，用户在CMS后台新建应用时生成
+setAppSecret | appSecret | String |  分配给应用的唯一秘钥，用户在CMS后台新建应用时生成
+setContext | context | Context | 传入app的Context，建议传入ApplicationContext
+setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等级，指定哪些日志需要输出
 
 
 ## 日志管理
@@ -378,7 +377,7 @@ NNewsFeedsSDK.getInstance().logoutUser();
 public void loadChannelList(NNFHttpRequestListener<NNFChannels> listener);
 ```
 
-- 调用
+- 示例
 
 
 ```java
@@ -394,6 +393,21 @@ NNewsFeedsSDK.getInstance().loadChannelList(new NNFHttpRequestListener<NNFChanne
     }
 });
 ```
+
+- 接口返回 NNFChannels
+
+名称 | 类型 | 描述
+---|---|---
+channels| NNFChannelInfo[]| 频道列表
+
+
+其中，单个频道的数据模型NNFChannelInfo各字段含义如下：
+
+名称 | 类型 | 示例 | 描述
+---|---|---|---
+channelId| String| | 频道ID
+channelName | String ||频道名称
+order | int | 1 | 频道显示的顺序
 
 - 网络请求结果回调接口说明
 
@@ -461,7 +475,7 @@ public void loadNewsList(String channelid, int num, NNFHttpRequestListener<NNFNe
 public void loadNewsList(String channelid, int num, int loadType, NNFHttpRequestListener<NNFNews> listener)
 ```
 
-- 调用
+- 示例
 
 ```java
 NNewsFeedsSDK.getInstance().loadNewsList(channelId, 10, isRefresh ? 1 : 0, GeoInfo.getLongitude(), GeoInfo.getLatitude(), new NNFHttpRequestListener<NNFNews>() {
@@ -499,13 +513,13 @@ banners | NNFNewsInfo[] | 轮播图或头图新闻
 tops | NNFNewsInfo[] | 置顶新闻
 infos| NNFNewsInfo[]| 普通新闻
 
-其中，单个新闻（NNFNewsInfo）按类型（infoType）可分为：文章(article)、图集(picset)、视频(video)、广告(ad)。数据模型NNFNewsInfo具体字段说明，请参考附录。
+其中，单个新闻（NNFNewsInfo）按类型（infoType）可分为：文章(article)、图集(picset)、视频(video)、广告(ad)。
 
 (1) 轮播图
 
 轮播图包含的新闻类型有：文章(article)、图集(picset)、广告(ad)。
 
-这里要注意的是，只有在拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的轮播图中才可能出现广告。
+这里要注意的是，只有在CMS上开启广告业务开关且拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的轮播图中才可能出现广告。
 
 (2) 置顶新闻
 
@@ -517,7 +531,7 @@ infos| NNFNewsInfo[]| 普通新闻
 
 普通新闻包含的新闻类型有：文章(article)、图集(picset)、视频(video)、广告(ad)。
 
-这里要注意的是，只有在拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的普通新闻列表中才可能出现广告。
+这里要注意的是，只有在CMS上开启广告业务开关且拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的普通新闻列表中才可能出现广告。
 
 下拉刷新时，接口返回头图新闻、置顶新闻、普通新闻，典型的Feed流展示逻辑是按照从上到下为头图新闻、置顶新闻、普通新闻的顺序，将下拉刷新的数据插入到当前Feed流头部；上拉加载更多时，接口只返回普通新闻，典型的Feed流展示逻辑是将上拉加载更多的数据追加到当前Feed流尾部。App开发人员可参考如下示例代码进行数据展示：
 
@@ -574,6 +588,25 @@ private void bindData(NNFNews news) {
 }
 ```
 
+单个新闻摘要NNFNewsInfo部分字段说明如下，完整字段请参考附录：
+
+名称 | 类型 | 描述
+---|---|---|---
+infoId| String| 新闻ID
+infoType| String| 新闻类型：文章(article)、图集(picset)、视频(video)
+title | String | 新闻标题
+source | String | 新闻来源
+updateTime | String | 新闻更新时间
+summary | String | 新闻简介
+thumbnails | NNFThumbnailInfo[] | 新闻缩略图
+imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
+num | int | 图集中图片数量，仅当infoType为图集picset时才有值
+videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
+ad | NNFAdCell | 广告信息，当且仅当infoType为ad时infoType
+readStatus | int | 0：未读 ； 1： 已读
+
+这里要注意的是，单个新闻摘要按照 imgType 可分为三图模式、大图模式、单图模式、无图模式。不管是哪一种imgType，具体的缩略图均存于thumbnails字段。
+
 - 错误码说明
 
 error的特殊处理：并不是所有error都是网络请求失败，其中
@@ -584,9 +617,9 @@ errorCode == 4000    表示后台管理系统删除了某个频道，App在未�
 errorCode == 4004    表示该频道下拉取不到任何的新闻列表信息，暂时没有可推荐的新闻，会返回code为4004的错误
 ```
 
-- 新闻点击事件响应
+### 各种类型的新闻展现
 
-当新闻列表中的单个新闻（NNFNewsInfo）被点击时，App开发人员需要根据新闻类型（infoType）实现对应的点击事件响应。例如，当infoType为video时，需要开始播放视频或者跳转到视频播放页面；当infoType为ad时，需要跳转到广告落地页面；当infoType为article时，需要跳转到文章详情页面；当infoType为picset时，需要跳转到图集展示页面。可参考如下代码片段：
+当新闻列表中的单个新闻（NNFNewsInfo）被点击时，App开发人员需要根据新闻类型（infoType）实现对应的展现页面。例如，当infoType为video时，需要开始播放视频或者跳转到视频播放页面；当infoType为ad时，需要跳转到广告落地页面；当infoType为article时，需要跳转到文章详情页面；当infoType为picset时，需要跳转到图集展示页面。可参考如下代码片段：
 
 ```java
 String infoType = newsInfo.infoType;
@@ -625,27 +658,87 @@ num | int | 图集中图片数量，仅当infoType为图集picset时才有值
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
 ad | NNFAdCell | 广告信息，当且仅当infoType为ad时才有值 
 
+#### 1. 视频类新闻展现
+
 由NNFNewsInfo数据模型可知，当 infoType 为 video 时，NNFNewsInfo中的videos字段会给出视频源信息，App开发人员可根据该视频源信息完成视频的下载、播放等交互逻辑。
 
-当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。广告视图的渲染由App开发人员完成。我们的SDK封装了广告点击后的落地页，点击广告时，App开发人员可以直接调用 onAdClicked 接口跳转到广告落地页。SDK内部会进行广告曝光和广告计费。
+视频源数据模型NNFVideoCell字段说明如下：
 
-广告点击接口定义
+名称 | 类型 | 描述
+---|---|---
+cover | String | 视频封面图
+largeCover | String | 视频封面大图
+playsize | int | 播放类型，0：表示4：3宽高比，1：表示16：9宽高比
+duration |  int | 视频时长，单位为秒，仅当infoType为视频时才有值
+mp4SdUrl | String | mp4格式视频链接，标清
+mp4HdUrl | String | mp4格式视频链接，高清
+m3u8SdUrl | String | m3u8格式视频链接，标清
+m3u8HdUrl | String | m3u8格式视频链接，高清
+sdUrl | String | flv格式视频链接，标清
+hdUrl | String | flv格式视频链接，高清
+shdUrl | String | flv格式视频链接，shd
+
+App开发人员可以根据视频封面和视频宽高比渲染视频视图，并根据视频链接拉取视频流实现播放。
+
+#### 2. 广告类新闻展现
+
+当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。
+
+- 单条广告数据模型：NNFAdInfo
+
+名称 | 类型 | 描述
+---|---|---|---
+title | String | 标题，短文字,14字以内
+desc | String | 描述，长文字,30字以内
+iconUrl | String | 获取Icon图片地址
+imgUrl | String | 获取大图地址
+isApp | boolean | 返回是否为APP广告
+producer | String | 广告生产者（gdt/inmobi）
+appStatus | int | 获取应用状态，0：未开始下载；1：已安装；2：需要更新; 4:下载中; 8:下载完成; 16:下载失败
+progress | int | 获取APP类广告下载中的下载进度
+downloadCount | long | 获取APP类广告的下载数
+appScore | int | 获取应用评级
+appPrice | Double | 获取APP类应用价格
+landingURL | String | 落地页（仅producer为inmobi有值）
+trackingMap | Map | 点击和曝光行为上报相关信息（仅producer为inmobi有值）
+
+广告视图的渲染由App开发人员完成。我们的SDK封装了广告点击后的落地页，为了确保广告准确计费，需要App开发人员自行调用广告曝光和广告点击接口，在调用广告点击接口之前，一定要先调用广告曝光接口。
+
+- 广告曝光接口定义
 
 ```java
-public void onAdClicked(NNFAdInfo adInfo, View view)
+public void reportExposure(View view)
+```
+
+其中，view为被点击的广告视图实例。
+
+- 广告曝光接口调用示例
+
+```java
+adInfo.reportExposure(view);
 ```
 
 其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
 
-广告点击接口调用
+- 广告点击接口定义
 
 ```java
-NNewsFeedsSDK.getInstance().onAdClicked(ad.adInfo, view);
+public void reportAdClickAndOpenLandingPage(View view)
 ```
 
-至于其他类型的新闻（infoType为article/picset），需要App开发人员自行实现具体的详情展示页面，通过调用 loadNewsDetails 接口获取详情数据 NNFNewsDetails。
+其中，view为被点击的广告视图实例。
 
-## 加载新闻详情
+- 广告点击接口调用示例
+
+```java
+adInfo.reportAdClickAndOpenLandingPage(view);
+```
+
+其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
+
+#### 3. 文章类新闻展现
+
+NNFNewsInfo数据模型只给出了文章类新闻的摘要信息，若要获取文章正文，需要调用`loadNewsDetails`接口拉取文章正文信息。
 
 - 定义
 
@@ -658,7 +751,7 @@ NNewsFeedsSDK.getInstance().onAdClicked(ad.adInfo, view);
  */
 public void loadNewsDetails(String infoType, String infoId, String producer, NNFHttpRequestListener<NNFNewsDetails> listener);
 ```
-- 调用
+- 示例
 
 ```java
 NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoType, newsInfo.infoId, newsInfo.producer, new NNFHttpRequestListener<NNFNewsDetails>() {
@@ -673,6 +766,7 @@ NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoType, newsInfo.infoId, 
     }
 });
 ```
+
 - 接口返回 NNFNewsDetails
 
 新闻详情NNFNewsDetails字段说明：
@@ -693,9 +787,33 @@ ad | NNFAdCell | | 广告
 
 从模型字段描述可知，当NNFNewsDetails.infoType为article时，文章类新闻正文由content字段给出，为支持图片异步加载，content中img标签被替换成了`${{index}}$`，index从0开始。正文中图片链接存于imgs字段。具体说明请参考网易有料Api Server文档。
 
+从v1.2开始，如果CMS上开启了广告业务开关且拉取广告的必要权限均被授权，用户请求新闻详情成功后，返回的 NNFNewsDetails 中可能包含广告，广告信息存于ad字段。广告的渲染与点击操作与新闻列表中的广告类似。
+
+#### 4. 图集类新闻展现
+
+NNFNewsInfo数据模型只给出了图集类新闻的缩略图信息，若要获取图集的图片列表，需要调用`loadNewsDetails`接口拉取图集详情信息。`loadNewsDetails`接口定义及示例请参考文章类新闻展现部分。
+
 当NNFNewsDetails.infoType为picset时，imgs字段表示图集中图片列表。
 
-从v1.2开始，如果拉取广告的必要权限均被授权，用户请求新闻详情成功后，返回的 NNFNewsDetails 中可能包含广告，广告信息存于ad字段。广告的渲染与点击操作与新闻列表中的广告类似。
+新闻详情NNFNewsDetails部分字段说明：
+
+名称 | 类型 | 示例 | 描述
+---|---|---|---
+infoId| String| | 新闻ID
+infoType| String| article/picset | 新闻类型，文章/图集
+imgs | NNFImageInfo[] |  | 图片列表
+
+单个图片数据模型NNFImageInfo字段说明：
+
+名称 | 类型 | 描述
+---|---|---|---
+url | String | 新闻图片url
+height | int | 新闻图片高度
+width | int | 新闻图片宽度
+picType | int | 新闻图片类型
+note | String | 图片描述，infoType为picset该字段才有值
+
+App开发人员需要根据图片列表自行实现图集展示页。
 
 ## 用户行为统计
 
@@ -718,7 +836,7 @@ ad | NNFAdCell | | 广告
 public void trackNewsClick(NNFNewsInfo newsInfo);
 ```
 
-- 调用
+- 示例
 
 
 ```java
@@ -738,12 +856,12 @@ NNFTracker.getInstance().trackNewsClick(newsInfo);
  *
  * @param newsInfo
  * @param cost     浏览时长 - 单位毫秒（点击进去，到返回的时间）
- * @param progress 浏览进度
+ * @param progress 浏览进度 - 例如视频的播放进度，图集已浏览的图片比率等等
  */
 public void trackNewsBrowse(NNFNewsInfo newsInfo, long cost, double progress);
 ```
 
-- 调用
+- 示例
 
 ```java
 NNFTracker.getInstance().trackNewsBrowse(newsInfo, cost, progress);
@@ -966,7 +1084,7 @@ infos| NNFNewsInfo[]| 普通新闻
 banners | NNFNewsInfo[] |轮播图
 tops | NNFNewsInfo[] |置顶新闻
 
-- 单个新闻：NNFNewsInfo
+- 单个新闻摘要：NNFNewsInfo
 
 名称 | 类型 | 描述
 ---|---|---|---
@@ -981,7 +1099,7 @@ source | String | 新闻来源
 updateTime | String | 新闻更新时间
 summary | String | 新闻简介
 thumbnails | NNFThumbnailInfo[] | 新闻缩略图
-imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：缩略图模式，0：无图
+imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
 hasVideo | boolean | 文章是否包含视频，true：有，false：没有
 num | int | 图集中图片数量，仅当infoType为图集picset时才有值
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
@@ -1045,6 +1163,7 @@ note | String | 图片描述，infoType为picset该字段才有值
 adPlacementId | String | 广告位
 mediumId | String | 广告表中的媒体id
 producer | String | 广告生产者
+ip | String | 移动端公网ip
 adInfo | NNFAdInfo | 广告数据
 
 - 单条广告数据模型：NNFAdInfo
@@ -1056,8 +1175,11 @@ desc | String | 描述，长文字,30字以内
 iconUrl | String | 获取Icon图片地址
 imgUrl | String | 获取大图地址
 isApp | boolean | 返回是否为APP广告
+producer | String | 广告生产者（gdt/inmobi）
 appStatus | int | 获取应用状态，0：未开始下载；1：已安装；2：需要更新; 4:下载中; 8:下载完成; 16:下载失败
 progress | int | 获取APP类广告下载中的下载进度
 downloadCount | long | 获取APP类广告的下载数
 appScore | int | 获取应用评级
 appPrice | Double | 获取APP类应用价格
+landingURL | String | 落地页（仅producer为inmobi有值）
+trackingMap | Map | 点击和曝光行为上报相关信息（仅producer为inmobi有值）
