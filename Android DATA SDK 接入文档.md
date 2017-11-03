@@ -1,5 +1,6 @@
 # Android SDK 接入文档
-## SDK 概述
+
+# SDK 概述
 
 网易有料NewsFeedsSDK为移动应用提供内容智能分发功能，对外提供较为简洁的API接口，方便第三方应用快速的集成并实现内容分发功能。SDK兼容Android 14+，Demo兼容Android 14+。
 
@@ -10,7 +11,7 @@ NewsFeedsSDK提供的功能如下：
 - 获取新闻详情
 - 用户行为采集上传
 
-## SDK类说明
+# SDK类说明
 
 网易有料NNewsFeedsSDK主要提供了以下类：
 
@@ -21,8 +22,9 @@ NewsFeedsSDK提供的功能如下：
 - NNFNews：新闻列表的model类
 - NNFNewsInfo：单个新闻的model类
 - NNFNewsDetails：新闻详情的model类
+- NNFAdInfo：单个广告的model类
 
-## 外部依赖说明
+# 外部依赖说明
 
 - 广告（v1.2新增）
 
@@ -32,7 +34,7 @@ NewsFeedsSDK提供的功能如下：
 
 我们的SDK依赖了推送SDK，使用的是个推的第三方推送SDK，相关使用参考个推官网开发使用文档：http://docs.getui.com/mobile/android/androidstudio_maven/
 
-## 开发准备
+# 开发准备
 
 ### 1. Gradle集成
 
@@ -300,7 +302,7 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 -keep class com.alibaba.fastjson.** { *; }
 ```
 
-## 初始化
+# 初始化
 
 在自定义Application的OnCreate中添加以下代码，初始化我们的SDK
 
@@ -325,7 +327,7 @@ setContext | context | Context | 传入app的Context，建议传入ApplicationCo
 setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等级，指定哪些日志需要输出
 
 
-## 日志管理
+# 日志管理
 
 - 定义
 
@@ -358,7 +360,7 @@ NFLogUtil.LOG_INFO | 打印 ERROR、WARN、INFO
 NFLogUtil.LOG_DEBUG | 打印 ERROR、WARN、INFO、DEBUG
 NFLogUtil.LOG_VERBOSE | 打印 ERROR、WARN、INFO、DEBUG、VERBOSE
 
-## 数据接入接口说明
+# 数据接入接口说明
 
 ### 配置用户标识
 
@@ -669,7 +671,7 @@ num | int | 图集中图片数量，仅当infoType为图集picset时才有值
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
 ad | NNFAdCell | 广告信息，当且仅当infoType为ad时才有值 
 
-#### 1. 视频类新闻展现
+##### 1. 视频类新闻展现
 
 由NNFNewsInfo数据模型可知，当 infoType 为 video 时，NNFNewsInfo中的videos字段会给出视频源信息，App开发人员可根据该视频源信息完成视频的下载、播放等交互逻辑。
 
@@ -691,7 +693,7 @@ shdUrl | String | flv格式视频链接，shd
 
 App开发人员可以根据视频封面和视频宽高比渲染视频视图，并根据视频链接拉取视频流实现播放。
 
-#### 2. 广告类新闻展现
+##### 2. 广告类新闻展现
 
 当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。
 
@@ -747,7 +749,7 @@ adInfo.reportAdClickAndOpenLandingPage(view);
 
 其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
 
-#### 3. 文章类新闻展现
+##### 3. 文章类新闻展现
 
 NNFNewsInfo数据模型只给出了文章类新闻的摘要信息，若要获取文章正文，需要调用`loadNewsDetails`接口拉取文章正文信息。
 
@@ -800,7 +802,7 @@ ad | NNFAdCell | | 广告
 
 从v1.2开始，如果CMS上开启了广告业务开关且拉取广告的必要权限均被授权，用户请求新闻详情成功后，返回的 NNFNewsDetails 中可能包含广告，广告信息存于ad字段。广告的渲染与点击操作与新闻列表中的广告类似。
 
-#### 4. 图集类新闻展现
+##### 4. 图集类新闻展现
 
 NNFNewsInfo数据模型只给出了图集类新闻的缩略图信息，若要获取图集的图片列表，需要调用`loadNewsDetails`接口拉取图集详情信息。`loadNewsDetails`接口定义及示例请参考文章类新闻展现部分。
 
@@ -826,7 +828,7 @@ note | String | 图片描述，infoType为picset该字段才有值
 
 App开发人员需要根据图片列表自行实现图集展示页。
 
-## 用户行为统计
+# 用户行为统计
 
 我们鼓励合作方接入用户行为统计接口，通过采集用户行为，结合网易有料专业数据挖掘能力和智能推荐算法得到的用户画像将会更精准。
 
@@ -863,7 +865,7 @@ NNFTracker.getInstance().trackNewsExposure(newsInfo);
 
 下面以RecyclerView为例，给出一种曝光统计方案：
 
-##### (1)在新闻单元格添加到列表的时候记录曝光开始时间
+##### 1. 在新闻单元格添加到列表的时候记录曝光开始时间
 
 ```java
 @Override
@@ -889,7 +891,7 @@ public void onChildViewAttachedToWindow(View view) {
 }
 ```
 
-##### (2)在新闻单元格从列表移除的时候曝光打点
+##### 2. 在新闻单元格从列表移除的时候曝光打点
 
 ```java
 @Override
@@ -924,7 +926,7 @@ public void explosureImp(int pos) {
 }
 ```
 
-##### (3)列表未滚动时，新闻列表当前屏的曝光统计
+##### 3. 列表未滚动时，新闻列表当前屏的曝光统计
 
 由于上述曝光事件只有在新闻单元格从新闻列表移除时才会触发，也就是只有新闻列表滚动的时候才会触发。当页面未滚动时，停留在当前页面的新闻单元格按照上述方法无法上传曝光事件，因此需要额外时机上传当前页面的新闻单元格的曝光事件。建议App开发人员在以下三种情形下，统计新闻列表当前屏的曝光：
 
@@ -1231,7 +1233,7 @@ protected void onDetachedFromWindow() {
 }
 ```
 
-## 附录
+# 附录
 
 ### 数据模型
 
