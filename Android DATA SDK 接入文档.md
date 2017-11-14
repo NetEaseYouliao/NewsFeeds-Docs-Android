@@ -311,7 +311,7 @@ new NNewsFeedsSDK.Builder()
     .setAppKey("4c92fbfc2e6e7046d6e3cafced******")
     .setAppSecret("b430f8362f9f65bc09a639f62b******")
     .setContext(getApplicationContext())
-    .setLogLevel(NFLogUtil.LOG_DEBUG)
+    .setLogLevel(NNFLogUtil.LOG_DEBUG)
     .build();
 ```
 
