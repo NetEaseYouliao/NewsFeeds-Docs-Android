@@ -11,6 +11,7 @@ NewsFeedsSDK提供的功能如下：
 - 获取新闻详情
 - 用户行为采集上传
 
+
 # SDK类说明
 
 网易有料NNewsFeedsSDK主要提供了以下类：
@@ -24,7 +25,17 @@ NewsFeedsSDK提供的功能如下：
 - NNFNewsDetails：新闻详情的model类
 - NNFAdInfo：单个广告的model类
 
-# 外部依赖说明
+# 开发准备
+
+### 1. 外部依赖说明
+
+- Json解析
+
+我们的SDK远程依赖了fastjson，fastjson版本号为1.2.8，若您的App也依赖了fastjson，请确保您依赖的fastjson版本与1.2.8兼容。
+
+```java
+compile 'com.alibaba:fastjson:1.2.8'
+```
 
 - 广告（v1.2新增）
 
@@ -34,17 +45,13 @@ NewsFeedsSDK提供的功能如下：
 
 我们的SDK依赖了推送SDK，使用的是个推的第三方推送SDK，相关使用参考个推官网开发使用文档：http://docs.getui.com/mobile/android/androidstudio_maven/
 
-# 开发准备
+从v1.3开始，用户可以自主选择是否集成个推SDK。若不需要推送服务，请直接进入下一步。
 
-### 1. Gradle集成
+若要接入推送服务，请联系我们的CMS后台，获取推送必要参数 `APP_ID`、`APP_KEY`、`APP_SECRET`，然后按照以下步骤进行集成：
 
-我们提供了两种方式进行Gradle集成，可以根据需要任选其一。
+第一步，在`project module`下的`build.gradle`配置repositories。
 
-- jcenter远程依赖
-
-第一步，在project module下的build.gradle配置repositories。创建项目时，会自动包含jcenter。
-
-从v1.2开始，我们的SDK集成了个推的推送SDK，由于个推SDK并未同步部署在JCenter上，因此，需要开发者额外配置个推提供的maven库，如下图所示：
+由于个推SDK并未同步部署在JCenter上，因此，需要开发者额外配置个推提供的maven库，如下图所示：
 
 ![](http://docs.getui.com/mobile/android/img/asmv_maven.png)
 
@@ -60,60 +67,58 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.2.4
+第二步，在`app module`下的`build.gradle`中引入个推sdk的依赖，如下图所示：
 
+![](http://docs.getui.com/mobile/android/img/asmv_dep.png)
+
+```java
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.getui:sdk:2.11.1.0'
+    compile 'com.android.support:support-v4:+'
+}
+
+```
+
+第三步，在项目根目录下的`gradle.properties`文件中配置`useDeprecatedNdk`参数，如下图所示：
+
+![](http://docs.getui.com/mobile/android/img/asmv_sop.png)
+
+```java
+android.useDeprecatedNdk=true
+```
+
+第四步，在`app/build.gradle`文件中的`android.defaultConfig`下添加`manifestPlaceholders`，配置个推相关的应用参数，如下图所示：
+
+![](http://docs.getui.com/mobile/android/img/asmv_param.png)
+
+```java
+manifestPlaceholders = [
+    GETUI_APP_ID : "APP_ID",
+    GETUI_APP_KEY : "APP_KEY",
+    GETUI_APP_SECRET : "APP_SECRET"
+]
+
+```
+
+请联系网易有料CMS后台获取相应的推送`APP_ID`、`APP_KEY`、`APP_SECRET`的值。推送完整文档请参考：http://docs.getui.com/mobile/android/androidstudio_maven/
+
+---
+
+
+### 2. Gradle集成网易有料
+
+- jcenter远程依赖
+
+我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.3
 
 ```java
 compile 'com.netease.youliao:newsfeeds-data:x.x'
 ```
 
-- aar本地依赖
+---
 
-第一步，导入jar包。在工程app结构下新建libs目录，同时将我们提供的`newsfeeds-data-x.x.aar`文件复制到当前libs目录下
-
-第二步，在project module下的build.gradle配置repositories
-
-```java
-allprojects {
-    repositories {
-        jcenter()
-        // 个推 Maven URL 地址
-		maven {
-		    url "http://mvn.gt.igexin.com/nexus/content/repositories/releases/"
-		}
-        // 添加aar文件所在目录
-        flatDir {
-            dirs 'libs'
-        }
-    }
-}
-```
-
-第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版为1.2.4
-
-我们的data-sdk内部依赖了一些第三方库：
-
-```java
-compile 'com.alibaba:fastjson:1.2.8'
-compile 'com.getui:sdk:2.11.1.0'
-```
-
-因此，采用aar本地引入的方式，需要同时引入data-sdk依赖库 & data-sdk。
-
-```java
-dependencies {
-    // 新建工程时自动生成
-    compile fileTree(include: ['*.jar'], dir: 'libs')
-    ...
-    // data-sdk依赖库
-    compile 'com.alibaba:fastjson:1.2.8'
-    compile 'com.getui:sdk:2.11.1.0'
-    // 添加data-sdk依赖
-    compile 'com.netease.youliao:newsfeeds-data:x.x@aar'
-}
-```
-
-### 2. 权限（v1.2新增）
+### 3. 权限（v1.2新增）
 
 从v1.2开始，我们的SDK内部提供广告功能，为了成功拉取到广告，需要在CMS上开启广告业务开关，并在AndroidManifest.xml中添加权限声明：
 
@@ -213,7 +218,9 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 ```
 
-### 3. 文件访问兼容性（v1.2新增）
+---
+
+### 4. 文件访问兼容性（v1.2新增）
 
 由于SDK返回的广告可能是App下载类广告，因此，当targetSDKVersion >= 24时，需要进行文件访问兼容处理。如果您打包时的targetSDKVersion >= 24，为了让SDK能够正常下载、安装App类广告，必须按照下面的三个步骤做兼容性处理。注意：如果您的targetSDKVersion < 24，不需要做这个兼容处理。
 
@@ -263,7 +270,9 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 （3）混淆配置文件中加上：`-keep class android.support.v4.**{ *;}`，避免support-V4包中的FileProvider代码被混淆。
 
-### 4. 混淆
+---
+
+### 5. 混淆
 
 若您的App开启了混淆，请为我们的SDK添加下述混淆规则
 
@@ -377,6 +386,8 @@ NNewsFeedsSDK.getInstance().loginUser("我是userId");
 NNewsFeedsSDK.getInstance().logoutUser();
 ```
 
+---
+
 ### 加载频道列表
 
 - 定义
@@ -420,7 +431,8 @@ channels| NNFChannelInfo[]| 频道列表
 ---|---|---|---
 channelId| String| | 频道ID
 channelName | String ||频道名称
-order | int | 1 | 频道显示的顺序
+channelOrder | int | 1 | 频道显示的顺序
+channelType | int | 1 | （v1.3新增）频道类型，其中4表示自营频道
 
 - 网络请求结果回调接口说明
 
@@ -454,11 +466,56 @@ void onHttpErrorResponse(int code, String errorMsg);
 
 网络请求失败时触发该回调。其中，code 为错误码，errorMsg 为错误原因。具体错误码和错误原因说明请参考网易有料Api Server文档。
 
+---
+
 ### 加载新闻列表
 
-SDK提供多个加载新闻列表的接口，用户可根据需要传入不同的参数组合。
+SDK提供多个加载新闻列表的接口，用户可根据需要传入不同的参数组合。v1.3之前的版本只需传入channelId即可获取新闻列表；v1.3版本以后，由于NNFChannelInfo新增了channelType字段用于区分自营频道与非自营频道，所以，强烈建议开发者传入NNFChannelInfo类型的实例作为列表请求参数。自营频道新闻列表数据返回策略与非自营频道有所不同，具体策略请参考网易有料Api Server文档。
 
-- 定义
+- （v1.3新版）定义
+
+```java
+/**
+ * @param channelInfo 频道实例
+ * @param listener    网络请求回调
+ */
+public void loadNewsList(NNFChannelInfo channelInfo, NNFHttpRequestListener<NNFNews> listener)
+```
+
+```java
+/**
+ * @param channelInfo 频道实例
+ * @param num         新闻列表长度，默认10条
+ * @param listener    网络请求回调
+ */
+public void loadNewsList(NNFChannelInfo channelInfo, int num, NNFHttpRequestListener<NNFNews> listener)
+```
+
+```java
+/**
+ * @param channelInfo 频道信息
+ * @param num         新闻列表长度，默认10条
+ * @param loadType    新闻列表内容组合 0：接口返回推荐系统或用户编辑的普通新闻 1：接口返回用户编辑的头图新闻、用户编辑的置顶新闻、推荐系统或用户编辑的普通新闻
+ * @param listener    网络请求回调
+ */
+public void loadNewsList(NNFChannelInfo channelInfo, int num, int loadType, NNFHttpRequestListener<NNFNews> listener)
+```
+
+接收经纬度
+
+```java
+/**
+ * @param channelInfo 频道信息
+ * @param num         新闻列表长度，默认10条
+ * @param loadType    新闻列表内容组合 0：接口返回推荐系统或用户编辑的普通新闻 1：接口返回用户编辑的头图新闻、用户编辑的置顶新闻、推荐系统或用户编辑的普通新闻
+ * @param longitude   经度，地球坐标格式，经纬度要么都填要么都不填
+ * @param latitude    纬度，地球坐标格式，经纬度要么都填要么都不填
+ * @param listener    网络请求回调
+ */
+public void loadNewsList(NNFChannelInfo channelInfo, int num, int loadType, double longitude, double latitude, NNFHttpRequestListener<NNFNews> listener)
+```
+
+- （旧版）定义
 
 ```java
 /**
@@ -630,6 +687,43 @@ errorCode == 4000    表示后台管理系统删除了某个频道，App在未�
 errorCode == 4004    表示该频道下拉取不到任何的新闻列表信息，暂时没有可推荐的新闻，会返回code为4004的错误
 ```
 
+---
+
+### 加载相关推荐列表
+
+- 定义
+
+```java
+/**
+ * @param infoId   新闻ID
+ * @param infoType 新闻类型，文章/图集/视频
+ * @param listener 网络请求回调
+ */
+public void loadRelatedNews(String infoId, String infoType, NNFHttpRequestListener<NNFNews> listener)
+```
+
+- 示例 
+
+```java
+NNewsFeedsSDK.getInstance().loadRelatedNews(mNewsInfo.infoId, mNewsInfo.infoType, new NNFHttpRequestListener<NNFNews>() {
+    @Override
+    public void onHttpSuccessResponse(NNFNews result) {
+        mContactView.hideProgressDialog();
+        mRelatedNNFNewsInfos = result.infos;
+        mContactView.parseDetails(mNNFNewsDetails, mRelatedNNFNewsInfos);
+    }
+
+    @Override
+    public void onHttpErrorResponse(int code, String errorMsg) {
+        mContactView.hideProgressDialog();
+        mContactView.parseDetails(mNNFNewsDetails, mRelatedNNFNewsInfos);
+    }
+});
+
+```
+
+----
+
 ### 各种类型的新闻展现
 
 当新闻列表中的单个新闻（NNFNewsInfo）被点击时，App开发人员需要根据新闻类型（infoType）实现对应的展现页面。例如，当infoType为video时，需要开始播放视频或者跳转到视频播放页面；当infoType为ad时，需要跳转到广告落地页面；当infoType为article时，需要跳转到文章详情页面；当infoType为picset时，需要跳转到图集展示页面。可参考如下代码片段：
@@ -693,6 +787,8 @@ shdUrl | String | flv格式视频链接，shd
 
 App开发人员可以根据视频封面和视频宽高比渲染视频视图，并根据视频链接拉取视频流实现播放。
 
+---
+
 ##### 2. 广告类新闻展现
 
 当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。
@@ -749,6 +845,8 @@ adInfo.reportAdClickAndOpenLandingPage(view);
 
 其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
 
+---
+
 ##### 3. 文章类新闻展现
 
 NNFNewsInfo数据模型只给出了文章类新闻的摘要信息，若要获取文章正文，需要调用`loadNewsDetails`接口拉取文章正文信息。
@@ -801,6 +899,8 @@ ad | NNFAdCell | | 广告
 从模型字段描述可知，当NNFNewsDetails.infoType为article时，文章类新闻正文由content字段给出，为支持图片异步加载，content中img标签被替换成了`${{index}}$`，index从0开始。正文中图片链接存于imgs字段。具体说明请参考网易有料Api Server文档。
 
 从v1.2开始，如果CMS上开启了广告业务开关且拉取广告的必要权限均被授权，用户请求新闻详情成功后，返回的 NNFNewsDetails 中可能包含广告，广告信息存于ad字段。广告的渲染与点击操作与新闻列表中的广告类似。
+
+---
 
 ##### 4. 图集类新闻展现
 
@@ -891,6 +991,8 @@ public void onChildViewAttachedToWindow(View view) {
 }
 ```
 
+---
+
 ##### 2. 在新闻单元格从列表移除的时候曝光打点
 
 ```java
@@ -925,6 +1027,8 @@ public void explosureImp(int pos) {
     }
 }
 ```
+
+---
 
 ##### 3. 列表未滚动时，新闻列表当前屏的曝光统计
 
@@ -997,6 +1101,8 @@ public void onPageSelected(int position) {
 }
 ```
 
+---
+
 ### 点击事件
 
 当文章或图集被点击，视频开始播放时，建议调用该接口进行点击行为上报。
@@ -1019,6 +1125,7 @@ public void trackNewsClick(NNFNewsInfo newsInfo);
 NNFTracker.getInstance().trackNewsClick(newsInfo);
 ```
 
+---
 
 ### 浏览事件
 
@@ -1250,7 +1357,8 @@ channels| NNFChannelInfo[]| 频道列表
 ---|---|---|---
 channelId| String| | 频道ID
 channelName | String ||频道名称
-order | int | 1 | 频道显示的顺序
+channelOrder | int | 1 | 频道显示的顺序
+channelType | int | 1 | （v1.3新增）频道类型，其中4表示自营频道
 
 - 新闻列表：NNFNews
 
@@ -1275,6 +1383,7 @@ source | String | 新闻来源
 updateTime | String | 新闻更新时间
 summary | String | 新闻简介
 thumbnails | NNFThumbnailInfo[] | 新闻缩略图
+tripleImgs | NNFThumbnailInfo[] | 兼容安徽头条
 imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
 hasVideo | boolean | 文章是否包含视频，true：有，false：没有
 num | int | 图集中图片数量，仅当infoType为图集picset时才有值
