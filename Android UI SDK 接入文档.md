@@ -48,7 +48,7 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前最新版均为1.3
+第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前最新版均为1.3.5
 
 
 ```java
@@ -75,7 +75,7 @@ allprojects {
 }
 ```
 
-第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版均为1.3
+第三步，在app module下的build.gradle中引入我们sdk的aar依赖，请自行将x.x替换为版本号，目前最新版均为1.3.5
 
 我们的data-sdk和ui-sdk内部依赖了一些第三方库，
 
@@ -697,6 +697,18 @@ public abstract void onPicClick(Context context, NNFImageInfo imageInfo, Object 
 
 ### NNFeedsFragment类接口说明
 
+#### 返回新闻列表顶部
+
+```java
+/**
+ * 点击导航栏返回到顶部，模仿ios点击状态栏返回到顶部的功能
+ */
+public void scrollToTop()
+```
+调用该接口可返回当前列表顶部。可用于模仿ios点击状态栏返回到顶部的功能。
+
+---
+
 #### 刷新已读新闻的状态
 
 ```java
@@ -708,8 +720,6 @@ public abstract void onPicClick(Context context, NNFImageInfo imageInfo, Object 
  */
 public void markNewsRead(String infoId, int adapterPosition)
 ```
-
- 使用SDK整合的View，无需调用该接口；
  
  用户自定义跳转页面，需在新闻详情加载成功后，将新闻标记为已读，并主动调用该接口，刷新新闻列表的已读状态。其中infoId为当前新闻的ID，adapterPos为当前新闻在新闻列表适配器中的position。
  
@@ -723,7 +733,7 @@ public void markNewsRead(String infoId, int adapterPosition)
  */
 public void performRefresh()
 ```
-可调用该接口实现强制下拉刷新当前列表的功能
+可调用该接口实现强制下拉刷新当前列表的功能。
 
 ---
 
@@ -737,6 +747,6 @@ public void performRefresh()
  */
 public void setSelectedChannel(String channelId)
 ```
-可调用该接口定位到指定频道。这里要注意的是，只有当信息流页面加载完成后，调用该接口才有效。
+可调用该接口定位到指定频道。
 
 ---
