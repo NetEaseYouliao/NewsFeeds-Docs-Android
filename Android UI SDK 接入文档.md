@@ -201,9 +201,9 @@ public static NNFeedsFragment createFeedsFragment(OnFeedsCallback onFeedsCallbac
 </activity>
 ```
 
-==注意==：视频退出全屏
+==注意==：视频退出全屏&资源释放
 
-由于NNFeedsFragment包含视频播放功能，视频播放支持全屏播放，若视频正在全屏播放，此时点击返回键，应先退出全屏播放。App开发人员需要重写NNFeedsFragment所在Activity的onBackPressed方法，并调用com.netease.youliao.newsfeeds.ui.libraries.jcvideoplayer_lib.JCVideoPlayer.onBackPressed();
+由于NNFeedsFragment包含视频播放功能，视频播放支持全屏播放，若视频正在全屏播放，此时点击返回键，应先退出全屏播放。App开发人员需要重写NNFeedsFragment所依附Activity的onBackPressed方法，并调用com.netease.youliao.newsfeeds.ui.libraries.jcvideoplayer_lib.JCVideoPlayer.onBackPressed();
 
 ```java
 @Override
@@ -212,6 +212,16 @@ public void onBackPressed() {
         return;
     }
     super.onBackPressed();
+}
+```
+
+当NNFeedsFragment所依附Activity处于onPause生命周期时，应释放视频资源，停止视频播放。
+
+```java
+@Override
+public void onPause() {
+    super.onPause();
+    JCVideoPlayer.releaseAllVideos();
 }
 ```
 
@@ -714,5 +724,19 @@ public void markNewsRead(String infoId, int adapterPosition)
 public void performRefresh()
 ```
 可调用该接口实现强制下拉刷新当前列表的功能
+
+---
+
+#### 定位到指定频道
+
+```java
+/**
+ * 允许用户直接定位到某一个频道
+ *
+ * @param channelId
+ */
+public void setSelectedChannel(String channelId)
+```
+可调用该接口定位到指定频道。这里要注意的是，只有当信息流页面加载完成后，调用该接口才有效。
 
 ---
