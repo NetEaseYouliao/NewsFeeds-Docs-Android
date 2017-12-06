@@ -1430,6 +1430,7 @@ content | String |  | 新闻正文
 imgs | NNFImageInfo[] |  | 图片列表
 tag | String |  | 标签
 ad | NNFAdCell | | 广告
+videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
 
 - 新闻图片模型：NNFImageInfo
 
