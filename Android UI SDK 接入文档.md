@@ -382,12 +382,12 @@ private class FeedsCallbackSample extends NNFOnFeedsCallback {
     @Override
     public void onNewsClick(Context context, NNFNewsInfo newsInfo, Object extraData) {
         if (null != newsInfo && null != newsInfo.infoType) {
-            if (YLConstants.INFO_TYPE_ARTICLE.equals(newsInfo.infoType)) {
+            if (NNFUIConstants.INFO_TYPE_ARTICLE.equals(newsInfo.infoType)) {
                 /**
                  * 第三步：自定义文章类新闻展示页面
                  */
                 SampleArticleActivity.start(context, newsInfo);
-            } else if (YLConstants.INFO_TYPE_PICSET.equals(newsInfo.infoType)) {
+            } else if (NNFUIConstants.INFO_TYPE_PICSET.equals(newsInfo.infoType)) {
                 /**
                  * 第四步：自定义图集类新闻展示页面
                  */
