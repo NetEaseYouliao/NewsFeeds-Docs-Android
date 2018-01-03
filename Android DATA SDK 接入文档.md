@@ -9,6 +9,7 @@ NewsFeedsSDK提供的功能如下：
 - 获取频道列表
 - 获取新闻列表
 - 获取新闻详情
+- 获取（文章、图集、视频）相关推荐
 - 用户行为采集上传
 
 
@@ -47,61 +48,7 @@ compile 'com.alibaba:fastjson:1.2.8'
 
 从v1.3开始，用户可以自主选择是否集成个推SDK。若不需要推送服务，请直接进入下一步。
 
-若要接入推送服务，请联系我们的CMS后台，获取推送必要参数 `APP_ID`、`APP_KEY`、`APP_SECRET`，然后按照以下步骤进行集成：
-
-第一步，在`project module`下的`build.gradle`配置repositories。
-
-由于个推SDK并未同步部署在JCenter上，因此，需要开发者额外配置个推提供的maven库，如下图所示：
-
-![](http://docs.getui.com/mobile/android/img/asmv_maven.png)
-
-```java
-allprojects {
-    repositories {
-        jcenter()
-        // 个推 Maven URL 地址
-		maven {
-		    url "http://mvn.gt.igexin.com/nexus/content/repositories/releases/"
-		}
-    }
-}
-```
-
-第二步，在`app module`下的`build.gradle`中引入个推sdk的依赖，如下图所示：
-
-![](http://docs.getui.com/mobile/android/img/asmv_dep.png)
-
-```java
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.getui:sdk:2.11.1.0'
-    compile 'com.android.support:support-v4:+'
-}
-
-```
-
-第三步，在项目根目录下的`gradle.properties`文件中配置`useDeprecatedNdk`参数，如下图所示：
-
-![](http://docs.getui.com/mobile/android/img/asmv_sop.png)
-
-```java
-android.useDeprecatedNdk=true
-```
-
-第四步，在`app/build.gradle`文件中的`android.defaultConfig`下添加`manifestPlaceholders`，配置个推相关的应用参数，如下图所示：
-
-![](http://docs.getui.com/mobile/android/img/asmv_param.png)
-
-```java
-manifestPlaceholders = [
-    GETUI_APP_ID : "APP_ID",
-    GETUI_APP_KEY : "APP_KEY",
-    GETUI_APP_SECRET : "APP_SECRET"
-]
-
-```
-
-请联系网易有料CMS后台获取相应的推送`APP_ID`、`APP_KEY`、`APP_SECRET`的值。推送完整文档请参考：http://docs.getui.com/mobile/android/androidstudio_maven/
+若要接入推送服务，请联系网易有料CMS后台获取相应的推送`APP_ID`、`APP_KEY`、`APP_SECRET`的值。推送完整文档请参考：[个推Android接入文档](http://docs.getui.com/getui/mobile/android/androidstudio_maven/)
 
 ---
 
@@ -110,7 +57,7 @@ manifestPlaceholders = [
 
 - jcenter远程依赖
 
-我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.3.5
+我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.4.5
 
 ```java
 compile 'com.netease.youliao:newsfeeds-data:x.x'
@@ -313,18 +260,45 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 # 初始化
 
-在自定义Application的OnCreate中添加以下代码，初始化我们的SDK
+在自定义Application的OnCreate中添加以下代码，初始化我们的SDK。由于您的应用可能不止一个进程，建议只在主进程下初始化我们的SDK。示例代码如下：
 
 ```
-new NNewsFeedsSDK.Builder()
-    .setAppKey("4c92fbfc2e6e7046d6e3cafced******")
-    .setAppSecret("b430f8362f9f65bc09a639f62b******")
-    .setContext(getApplicationContext())
-    .setLogLevel(NNFLogUtil.LOG_DEBUG)
-    .build();
-```
+public class YLApplication extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        String processName = getProcessName();
+        // 判断进程名，保证只有主进程才初始化网易有料DATA SDK
+        if (!TextUtils.isEmpty(processName) && processName.equals(this.getPackageName())) {
+            /**
+             * 初始化SDK：在自定义Application中初始化网易有料DATA SDK
+             */
+            new NNewsFeedsSDK.Builder()
+                .setAppKey("3c11d60d903e49d5a47ad2a58bb0db97")
+                .setAppSecret("ca5137e40b874abd893e762f1d53d839")
+                .setContext(getApplicationContext())
+                .setCacheEnabled(true)
+                .setMaxCacheNum(60)
+                .setMaxCacheTime(1 * 24 * 60 * 60 * 1000)
+                .setLogLevel(NNFLogUtil.LOG_VERBOSE)
+                .build();
+        }
+    }
 
-上述初始化代码生成一个NNewsFeedsSDK实例，后续可通过NNewsFeedsSDK.getInstance()拿到该实例进行接口调用。
+    public static String getProcessName() {
+        try {
+            File file = new File("/proc/" + android.os.Process.myPid() + "/" + "cmdline");
+            BufferedReader mBufferedReader = new BufferedReader(new FileReader(file));
+            String processName = mBufferedReader.readLine().trim();
+            mBufferedReader.close();
+            return processName;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
+```
 
 初始化接口及参数说明
 
@@ -333,6 +307,9 @@ new NNewsFeedsSDK.Builder()
 setAppKey | appKey | String | 分配给应用的唯一标识，用户在CMS后台新建应用时生成
 setAppSecret | appSecret | String |  分配给应用的唯一秘钥，用户在CMS后台新建应用时生成
 setContext | context | Context | 传入app的Context，建议传入ApplicationContext
+setCacheEnabled | cacheEnabled | boolean | 设置频道列表、新闻列表、新闻详情缓存的开启状态，默认true
+setMaxCacheNum | maxCacheNum | int | 配置每个频道最大缓存新闻数量，默认60条
+setMaxCacheTime | maxCacheTime | long | 配置新闻列表及新闻详情文本最大缓存时长，单位毫秒，默认1天（1 * 24 * 60 * 60 * 1000）
 setLogLevel | logLevel | int | Android Studio等开发工具的 控制台Log等级，指定哪些日志需要输出
 
 
@@ -362,12 +339,12 @@ Log等级指的是Android Studio等开发工具的控制台Log等级，指定哪
 
 Log等级 | 说明 
 ---|---
-NFLogUtil.LOG_NONE| 不打印日志
-NFLogUtil.LOG_ERROR | 打印 ERROR
-NFLogUtil.LOG_WARN | 打印 ERROR、WARN
-NFLogUtil.LOG_INFO | 打印 ERROR、WARN、INFO
-NFLogUtil.LOG_DEBUG | 打印 ERROR、WARN、INFO、DEBUG
-NFLogUtil.LOG_VERBOSE | 打印 ERROR、WARN、INFO、DEBUG、VERBOSE
+NNFLogUtil.LOG_NONE| 不打印日志
+NNFLogUtil.LOG_ERROR | 打印 ERROR
+NNFLogUtil.LOG_WARN | 打印 ERROR、WARN
+NNFLogUtil.LOG_INFO | 打印 ERROR、WARN、INFO
+NNFLogUtil.LOG_DEBUG | 打印 ERROR、WARN、INFO、DEBUG
+NNFLogUtil.LOG_VERBOSE | 打印 ERROR、WARN、INFO、DEBUG、VERBOSE
 
 # 数据接入接口说明
 
@@ -732,7 +709,8 @@ NNewsFeedsSDK.getInstance().loadRelatedNews(mNewsInfo.infoId, mNewsInfo.infoType
 String infoType = newsInfo.infoType;
 switch (infoType){
 	case "video":
-	    // 开始视频播放
+	    // 跳转到视频类新闻展示页
+	    MoreVideoActivity.start(context, newsInfo);
 	    ...
 	    break;
 	case "ad":
@@ -793,7 +771,7 @@ App开发人员可以根据视频封面和视频宽高比渲染视频视图，�
 
 当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。
 
-- 单条广告数据模型：NNFAdInfo
+- 单条广告数据模型NNFAdInfo主要字段
 
 名称 | 类型 | 描述
 ---|---|---|---
@@ -803,15 +781,12 @@ iconUrl | String | 获取Icon图片地址
 imgUrl | String | 获取大图地址
 isApp | boolean | 返回是否为APP广告
 producer | String | 广告生产者（gdt/inmobi）
-appStatus | int | 获取应用状态，0：未开始下载；1：已安装；2：需要更新; 4:下载中; 8:下载完成; 16:下载失败
-progress | int | 获取APP类广告下载中的下载进度
-downloadCount | long | 获取APP类广告的下载数
-appScore | int | 获取应用评级
-appPrice | Double | 获取APP类应用价格
-landingURL | String | 落地页（仅producer为inmobi有值）
+landingURL | String | 落地页（仅producer为inmobi或ytg时有值）
 trackingMap | Map | 点击和曝光行为上报相关信息（仅producer为inmobi有值）
+thumbnailInfos | NNFThumbnailInfo[] | 缩略图数组
+imageType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
 
-广告视图的渲染由App开发人员完成。我们的SDK封装了广告点击后的落地页，为了确保广告准确计费，需要App开发人员自行调用广告曝光和广告点击接口，在调用广告点击接口之前，一定要先调用广告曝光接口。
+广告视图的渲染由App开发人员完成。我们的SDK封装了广告点击后的落地页，为了确保广告准确计费，需要App开发人员自行调用广告曝光和广告点击接口，**在调用广告点击接口之前，一定要先调用广告曝光接口**。
 
 - 广告曝光接口定义
 
@@ -855,17 +830,18 @@ NNFNewsInfo数据模型只给出了文章类新闻的摘要信息，若要获取
 
 ```java
 /**
- * @param infoType 新闻类型，文章/图集/视频
- * @param infoId 新闻ID
+ * v1.4.5版开始，无需传入infoType
+ *
+ * @param infoId   新闻ID
  * @param producer 新闻提供者，user表示用户自编辑新闻，recommendation表示来自个性化推荐系统
  * @param listener 网络请求回调
  */
-public void loadNewsDetails(String infoType, String infoId, String producer, NNFHttpRequestListener<NNFNewsDetails> listener);
+public void loadNewsDetails(String infoId, String producer, NNFHttpRequestListener<NNFNewsDetails> listener)
 ```
 - 示例
 
 ```java
-NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoType, newsInfo.infoId, newsInfo.producer, new NNFHttpRequestListener<NNFNewsDetails>() {
+NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoId, newsInfo.producer, new NNFHttpRequestListener<NNFNewsDetails>() {
     @Override
     public void onHttpSuccessResponse(NNFNewsDetails result) {
         
@@ -928,11 +904,161 @@ note | String | 图片描述，infoType为picset该字段才有值
 
 App开发人员需要根据图片列表自行实现图集展示页。
 
+### 缓存相关
+
+#### 缓存开关设置
+
+- 定义
+
+```java
+/**
+ * 设置频道列表、新闻列表、新闻详情缓存的开启状态
+ * 注意：若用户同时使用UI SDK，强烈不建议用户关闭缓存
+ *
+ * @param cacheEnabled 缓存开启状态，默认true
+ * @return
+ */
+public Builder setCacheEnabled(boolean cacheEnabled)
+```
+
+- 示例
+
+```java
+new NNewsFeedsSDK.Builder()
+    .setCacheEnabled(true)
+    .build();
+```
+用户只使用数据SDK可以关闭缓存，由用户自定义缓存的实现；若用户使用了UI SDK，不建议关闭缓存，会引起部分数据的显示等异常。
+
+---
+
+#### 最大缓存时长设置
+
+- 定义
+
+```java
+/**
+ * 配置新闻列表及新闻详情文本最大缓存时长
+ *
+ * @param maxCacheTime 最大缓存时长，单位毫秒，默认1*24*60*60*1000，即一天
+ */
+public Builder setMaxCacheTime(long maxCacheTime)
+```
+
+- 示例
+
+```java
+new NNewsFeedsSDK.Builder()
+    .setMaxCacheTime(1 * 24 * 60 * 60 * 1000)
+    .build();
+```
+
+---
+
+
+#### 频道最大缓存数量设置
+
+- 定义
+
+```java
+/**
+ * 配置每个频道最大缓存新闻数量
+ *
+ * @param maxCacheNum 最大缓存新闻数量，默认60条
+ */
+public Builder setMaxCacheNum(int maxCacheNum)
+```
+
+- 示例
+
+```java
+new NNewsFeedsSDK.Builder()
+    .setMaxCacheNum(60)
+    .build();
+```
+
+---
+
+#### 删除过期的新闻
+
+- 定义
+
+```java
+/**
+ * 删除过期新闻及其详情
+ *
+ * @param listener 删除进度回调
+ */
+public void deleteExpireCachedNews(NNFClearCacheListener listener)
+```
+
+- 示例
+
+```java
+NNewsFeedsSDK.getInstance().deleteExpireCachedNews(new NNFClearCacheListener() {
+    @Override
+    public void onClearFinish() {
+        
+    }
+});
+```
+
+---
+
+#### 删除所有缓存的新闻
+
+- 定义
+
+```java
+/**
+ * 删除缓存的新闻及其详情
+ *
+ * @param listener 删除进度回调
+ */
+public void deleteAllCachedNews(NNFClearCacheListener listener)
+```
+
+- 示例
+
+```java
+NNewsFeedsSDK.getInstance().deleteAllCachedNews(new NNFClearCacheListener() {
+    @Override
+    public void onClearFinish() {
+        
+    }
+});
+```
+
+---
+
+#### 计算当前的缓存大小
+
+- 定义
+
+```java
+/**
+ * 计算缓存的大小
+ * 缓存的大小，单位 bytes
+ * 缓存较大的时候时候计算时间较长，请合理使用
+ *
+ * @return The length, in bytes
+ */
+public long getCacheSize()
+```
+
+- 示例
+
+```java
+long cacheSize = NNewsFeedsSDK.getInstance().getCacheSize();
+```
+
+---
+
 # 用户行为统计
 
 我们鼓励合作方接入用户行为统计接口，通过采集用户行为，结合网易有料专业数据挖掘能力和智能推荐算法得到的用户画像将会更精准。
 
-值得注意的是，用户行为统计接口均封装在 NNFTracker 中。请确保 SDK 初始化后再调用 NNFTracker 中的接口，否则会抛 NullPointerException。
+值得注意的是，用户行为统计接口均封装在 NNFTracker 中。**请确保 SDK 初始化后再调用 NNFTracker 中的接口，否则会抛 NullPointerException。**
 
 ### 曝光事件（v1.2新增）
 
@@ -1105,7 +1231,13 @@ public void onPageSelected(int position) {
 
 ### 点击事件
 
-当文章或图集被点击，视频开始播放时，建议调用该接口进行点击行为上报。
+* 点击行为场景如下：
+
+	* 列表中的新闻被点击
+	* 相关文章被点击
+	* 相关图集被点击
+
+发生以上行为时，建议调用该接口进行点击行为上报。
 
 - 定义
 
@@ -1340,6 +1472,66 @@ protected void onDetachedFromWindow() {
 }
 ```
 
+### 负反馈事件
+
+从`v1.4.5`开始，SDK返回的`NNFNewsInfo`数据模型新增`feedbacks`字段，用于支持用户负反馈功能，对不感兴趣或推荐不当的新闻进行反馈，从而修正用户模型，提高推荐准确性。
+
+- feedbacks 字段示例
+
+```java
+"feedbacks": [
+  {
+    "name": "不感兴趣",
+    "value": "D_0"
+  },
+  {
+    "name": "内容质量差",
+    "value": "D_1"
+  },
+  {
+    "name": "看过了",
+    "value": "D_2"
+  },
+  {
+    "name": "不想看:逸动城市网",
+    "value": "S_逸动城市网"
+  }
+]
+```
+
+根据`feedbacks字段`给出的反馈项，开发人员可参考如下UI示例进行负反馈搜集，并调用`trackNewsFeedback`进行行为上报。
+
+ ![内容反馈](http://nos.netease.com/knowledge/f7be0108-4554-4256-88ce-562070794ca6) 
+
+- 定义
+
+```java
+/**
+ * 负反馈事件搜集
+ */
+public void trackNewsFeedback(NNFNewsInfo newsInfo, String[] reasons)
+```
+
+其中`reasons`为反馈的原因，对应`feedbacks`字段中的反馈项value组合，例如用户选择了 "不感兴趣"、"内容质量差" 两项原因，则`reasons`取值应为`["D_0", "D_1"]`。
+
+- 示例
+
+```java
+// 上报负反馈数据
+HashSet<NNFeedbackInfo> selectedBeans = feedbackAdapter.getSelectedBeans();
+String[] reasons = new String[selectedBeans.size() + 1];
+// 默认传递第0项
+reasons[0] = feedbacks[0].value;
+Iterator<NNFeedbackInfo> iterator = selectedBeans.iterator();
+int i = 1;
+while (iterator.hasNext()) {
+    if (i < reasons.length)
+        reasons[i] = iterator.next().value;
+    i++;
+}
+NNFTracker.getInstance().trackNewsFeedback(mNewsInfo, reasons);
+```
+
 # 附录
 
 ### 数据模型
@@ -1381,6 +1573,7 @@ infoType| String| 新闻类型：文章(article)、图集(picset)、视频(video
 title | String | 新闻标题
 source | String | 新闻来源
 updateTime | String | 新闻更新时间
+publishTime | String | 新闻创建时间
 summary | String | 新闻简介
 thumbnails | NNFThumbnailInfo[] | 新闻缩略图
 tripleImgs | NNFThumbnailInfo[] | 兼容安徽头条
@@ -1390,6 +1583,15 @@ num | int | 图集中图片数量，仅当infoType为图集picset时才有值
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
 ad | NNFAdCell | 广告信息，当且仅当infoType为ad时infoType
 readStatus | int | 0：未读 ； 1： 已读
+deliverId | long | 兼容自营频道
+feedbacks | NNFeedbackInfo[] | 用户可选择的负反馈内容，最多7项，最少3项，广告没有负反馈，后台不会下发内容
+
+- 单个负反馈项：NNFeedbackInfo
+
+名称 | 类型 | 描述
+---|---|---|---
+name | String | 客户端展示内容
+value | String | 客户端上报内容
 
 - 视频模型：NNFVideoCell
 
@@ -1469,3 +1671,5 @@ appScore | int | 获取应用评级
 appPrice | Double | 获取APP类应用价格
 landingURL | String | 落地页（仅producer为inmobi有值）
 trackingMap | Map | 点击和曝光行为上报相关信息（仅producer为inmobi有值）
+thumbnailInfos | NNFThumbnailInfo[] | 缩略图数组
+imageType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
