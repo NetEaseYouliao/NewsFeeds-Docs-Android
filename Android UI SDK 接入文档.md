@@ -85,7 +85,7 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前ui-sdk最新版为1.3.6，data-sdk最新版为1.3.5
+第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前ui-sdk最新版为1.4.5，data-sdk最新版为1.4.5
 
 
 ```java
