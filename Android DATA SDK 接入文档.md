@@ -57,7 +57,7 @@ compile 'com.alibaba:fastjson:1.2.8'
 
 - jcenter远程依赖
 
-我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.4.5
+我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.4.6
 
 ```java
 compile 'com.netease.youliao:newsfeeds-data:x.x'
