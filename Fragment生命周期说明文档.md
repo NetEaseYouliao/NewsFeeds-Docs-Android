@@ -1,4 +1,4 @@
-`Fragment`的管理方式对Fragment生命周期的影响
+`Fragment`管理方式与Fragment生命周期的关系
 
 (1) 通过 replace 的方式来管理底部的几个 tab 相互切换
 
@@ -65,4 +65,7 @@
         super.setUserVisibleHint(isVisibleToUser);
         DATracker.getInstance().setFragmentUserVisibleHint(this, isVisibleToUser);
     }
-	
+
+参考资料：
+
+[FragmentTransaction与Fragment生命周期的关系](https://segmentfault.com/a/1190000000650573)
