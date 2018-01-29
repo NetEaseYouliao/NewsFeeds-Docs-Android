@@ -81,10 +81,20 @@ feedsUIOption             |NNFFeedsUIOption|文章详情相关推荐样式控制
 | cellBackgroundColor           | String  | 单条新闻cell的背景色     |  颜色值            |
 | cellEnableBackgroundColor     | String  | 点击新闻cell的高亮背景色  |  颜色值            |
 | cellTitleColor                | String  | 新闻cell的标题字体颜色    |  颜色值            |
+| cellTitleReadColor            | String  | 新闻cell标题已读颜色      | 颜色值             |
 | cellTitleSize                 | int     | 新闻cell的标题字号大小    |  可取值14，16，18   |
-| sourceTextColor               | String  | 新闻cell的来源字体颜色    |  颜色值            |
-| showSeparator                 | boolean | 是否显示信息流列表分割线   |  默认显示          |
+| cellTitleBold                 | boolean | 新闻cell标题是否加粗      | true:加粗 false：不加粗|
+| cellMargin 						  | int[]   | 新闻cell内容的左右上下边距 | 应传入一个4维数组    |
+| titleImageMargin 				  | int     | 标题和图片间的距离         |                   |
+| imageSourceMargin 			  | int     | 图片和来源间的距离         |                   |
+| imagePostion					  | int 	  | 图片和文字的位置           |0:左文右图 1:左图右文 |
+| smallImageRatio				  | float   | 小图模式下的长宽比         |
+| largeImageRatio				  | float   | 大图模式下的长宽比         |
+| trippleImageRatio 			  | float   | 三图模式下的长宽比         |
+| sourceTextColor               | String  | 新闻cell的来源字体颜色     |  颜色值            |
+| showSeparator                 | boolean | 是否显示信息流列表分割线    |  默认显示          |
 | separatorColor                | String  | 信息流列表分割线颜色       |  颜色值           |
+| separatorMargin				  | int[]   | 分割线左右边距            | 应传入一个二维数组 |
 | lastReadBackgroundDrawable    | int     | 上次已读信息提示背景图     |  Drawable ResId  |
 | lastReadTextColor             | String  | 上次已读信息提示字体颜色   |   颜色值           |
 | pullingText                   | String  | 下拉刷新控件一般状态文字   |   默认值"下拉刷新"   |
@@ -273,7 +283,7 @@ public void initSmallEntrance() {
 通过NNFArticleUIOptionKey，NNFArticleFuncOptionKey传入相应的配置项进行构建Map，或通过Json字符串的方式创建Map传入。
 
 
-#### Q&A
+####Q&A
 
 -  颜色值该如何传入?
 
