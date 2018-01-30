@@ -1,4 +1,4 @@
-# Android SDK 接入文档
+# Android DATA SDK 接入文档
 
 # SDK 概述
 
@@ -30,25 +30,30 @@ NewsFeedsSDK提供的功能如下：
 
 ### 1. 外部依赖说明
 
-- Json解析
+- fastjson
 
-我们的SDK远程依赖了fastjson，fastjson版本号为1.2.8，若您的App也依赖了fastjson，请确保您依赖的fastjson版本与1.2.8兼容。
+我们的SDK以`provided`的形式依赖了fastjson，fastjson版本号为1.2.8，若您的App也依赖了fastjson，请确保您依赖的fastjson版本与1.2.8兼容。
 
 ```java
-compile 'com.alibaba:fastjson:1.2.8'
+provided 'com.alibaba:fastjson:1.2.8'
 ```
 
-- 广告（v1.2新增）
+- appcompat-v7
 
-从v1.2开始，我们的SDK内嵌了腾讯广点通广告SDK，用户在使用本SDK的时候，确保工程中未使用广点通的SDK。
+我们的SDK以`provided`的形式依赖了appcompat-v7，appcompat-v7版本号为25.3.1，请确保您App依赖的appcompat-v7版本与25.3.1兼容。
 
-- 推送（v1.2新增）
+```java
+provided 'com.android.support:appcompat-v7:25.3.1'
+```
 
-我们的SDK依赖了推送SDK，使用的是个推的第三方推送SDK，相关使用参考个推官网开发使用文档：http://docs.getui.com/mobile/android/androidstudio_maven/
+- 广告
 
-从v1.3开始，用户可以自主选择是否集成个推SDK。若不需要推送服务，请直接进入下一步。
+我们的SDK以`compile`的形式内嵌了腾讯广点通广告SDK V4.14.558，App开发人员在使用本SDK的时候，确保工程中未使用广点通的SDK。
 
-若要接入推送服务，请联系网易有料CMS后台获取相应的推送`APP_ID`、`APP_KEY`、`APP_SECRET`的值。推送完整文档请参考：[个推Android接入文档](http://docs.getui.com/getui/mobile/android/androidstudio_maven/)
+```java
+compile fileTree(dir: 'libs', include: ['*.jar'])
+compile files('libs/GDTUnionSDK.4.14.558.min.jar')
+```
 
 ---
 
@@ -57,15 +62,23 @@ compile 'com.alibaba:fastjson:1.2.8'
 
 - jcenter远程依赖
 
-我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.4.6
+SDK内部以`provided`的形式依赖了 appcompat-v7 和 fastjson，因此，app 开发人员需要先行依赖这两个库。
+
+我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.5.0
+
+gradle.build 配置示例如下：
 
 ```java
+// data sdk依赖
+compile 'com.android.support:appcompat-v7:25.3.1'
+compile 'com.alibaba:fastjson:1.2.8'
+
 compile 'com.netease.youliao:newsfeeds-data:x.x'
 ```
 
 ---
 
-### 3. 权限（v1.2新增）
+### 3. 权限
 
 从v1.2开始，我们的SDK内部提供广告功能，为了成功拉取到广告，需要在CMS上开启广告业务开关，并在AndroidManifest.xml中添加权限声明：
 
@@ -167,7 +180,7 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 
 ---
 
-### 4. 文件访问兼容性（v1.2新增）
+### 4. 文件访问兼容性
 
 由于SDK返回的广告可能是App下载类广告，因此，当targetSDKVersion >= 24时，需要进行文件访问兼容处理。如果您打包时的targetSDKVersion >= 24，为了让SDK能够正常下载、安装App类广告，必须按照下面的三个步骤做兼容性处理。注意：如果您的targetSDKVersion < 24，不需要做这个兼容处理。
 
@@ -229,7 +242,7 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 -keep class com.netease.youliao.newsfeeds.**{*;}
 ```
 
-从v1.2开始，由于我们的SDK内部依赖了腾讯广点通和个推，因此，混淆时也需要添加如下混淆规则：
+由于我们的SDK内部依赖了腾讯广点通和fastjson，因此，混淆时也需要添加如下混淆规则：
 
 ```java
 # 腾讯广点通
@@ -241,13 +254,6 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 }
 # targetSDKVersion >= 24添加该语句，避免support-V4包中的FileProvider代码被混淆
 -keep class android.support.v4.**{ *;}
-
-
-# 个推
--dontwarn com.igexin.**
--keep class com.igexin.** { *; }
--keep class org.json.** { *; }
--keep public class * extends com.igexin.sdk.GTIntentService
 
 -keep class android.support.v4.app.NotificationCompat { *; }
 -keep class android.support.v4.app.NotificationCompat$Builder { *; }
@@ -267,15 +273,16 @@ public class YLApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        String processName = getProcessName();
+        Context context = getApplicationContext();
+        String processName = getProcessName(context, Process.myPid());
         // 判断进程名，保证只有主进程才初始化网易有料DATA SDK
         if (!TextUtils.isEmpty(processName) && processName.equals(this.getPackageName())) {
             /**
              * 初始化SDK：在自定义Application中初始化网易有料DATA SDK
              */
             new NNewsFeedsSDK.Builder()
-                .setAppKey("3c11d60d903e49d5a47ad2a58bb0db97")
-                .setAppSecret("ca5137e40b874abd893e762f1d53d839")
+                .setAppKey("3c11d60d903e49d5a47ad2a58b******")
+                .setAppSecret("ca5137e40b874abd893e762f1d******")
                 .setContext(getApplicationContext())
                 .setCacheEnabled(true)
                 .setMaxCacheNum(60)
@@ -285,17 +292,24 @@ public class YLApplication extends Application {
         }
     }
 
-    public static String getProcessName() {
-        try {
-            File file = new File("/proc/" + android.os.Process.myPid() + "/" + "cmdline");
-            BufferedReader mBufferedReader = new BufferedReader(new FileReader(file));
-            String processName = mBufferedReader.readLine().trim();
-            mBufferedReader.close();
-            return processName;
-        } catch (Exception e) {
-            e.printStackTrace();
+    /**
+     * 根据进程 ID 获取进程名
+     *
+     * @param pid
+     * @return
+     */
+    public static String getProcessName(Context context, int pid) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> processInfoList = am.getRunningAppProcesses();
+        if (processInfoList == null) {
             return null;
         }
+        for (ActivityManager.RunningAppProcessInfo processInfo : processInfoList) {
+            if (processInfo.pid == pid) {
+                return processInfo.processName;
+            }
+        }
+        return null;
     }
 }
 ```
@@ -449,7 +463,7 @@ void onHttpErrorResponse(int code, String errorMsg);
 
 SDK提供多个加载新闻列表的接口，用户可根据需要传入不同的参数组合。v1.3之前的版本只需传入channelId即可获取新闻列表；v1.3版本以后，由于NNFChannelInfo新增了channelType字段用于区分自营频道与非自营频道，所以，强烈建议开发者传入NNFChannelInfo类型的实例作为列表请求参数。自营频道新闻列表数据返回策略与非自营频道有所不同，具体策略请参考网易有料Api Server文档。
 
-- （v1.3新版）定义
+- 定义
 
 ```java
 /**
@@ -492,40 +506,10 @@ public void loadNewsList(NNFChannelInfo channelInfo, int num, int loadType, NNFH
 public void loadNewsList(NNFChannelInfo channelInfo, int num, int loadType, double longitude, double latitude, NNFHttpRequestListener<NNFNews> listener)
 ```
 
-- （旧版）定义
-
-```java
-/**
- * @param channelid 频道ID
- * @param listener  网络请求回调
- */
-public void loadNewsList(String channelid, NNFHttpRequestListener<NNFNews> listener);
-```
-
-```java
-/**
- * @param channelid 频道ID
- * @param num       新闻列表长度，默认10条
- * @param listener  网络请求回调
- */
-public void loadNewsList(String channelid, int num, NNFHttpRequestListener<NNFNews> listener);
-```
-
-
-```java
-/**
- * @param channelid 频道ID
- * @param num       新闻列表长度，默认10条
- * @param loadType  新闻列表内容组合，默认为0
- * @param listener  网络请求回调
- */
-public void loadNewsList(String channelid, int num, int loadType, NNFHttpRequestListener<NNFNews> listener)
-```
-
 - 示例
 
 ```java
-NNewsFeedsSDK.getInstance().loadNewsList(channelId, 10, isRefresh ? 1 : 0, GeoInfo.getLongitude(), GeoInfo.getLatitude(), new NNFHttpRequestListener<NNFNews>() {
+NNewsFeedsSDK.getInstance().loadNewsList(channelInfo, 10, 1, GeoInfo.getLongitude(), GeoInfo.getLatitude(), new NNFHttpRequestListener<NNFNews>() {
     @Override
     public void onHttpSuccessResponse(NNFNews result) {
 
@@ -540,9 +524,11 @@ NNewsFeedsSDK.getInstance().loadNewsList(channelId, 10, isRefresh ? 1 : 0, GeoIn
 
 - 请求参数 loadType 
 
-loadType为新闻列表内容组合类型，取值0或1，默认取0。取值说明如下： 
+loadType为新闻列表内容组合类型，取值0、1、2，默认取0。取值说明如下： 
 
-1：下拉刷新时，传入1，返回普通新闻、头图新闻、置顶新闻。
+2：打开应用，首次刷新某个频道时，传入2，返回头图新闻，置顶新闻和普通新闻。
+
+1：非首次下拉刷新时，传入1，返回头图新闻，置顶新闻和普通新闻。
 
 0：上拉加载更多时，传入0，只返回普通新闻。
 
@@ -698,6 +684,59 @@ NNewsFeedsSDK.getInstance().loadRelatedNews(mNewsInfo.infoId, mNewsInfo.infoType
 });
 
 ```
+
+----
+
+### 新闻举报
+
+在浏览新闻时，一般能看到如下图所示的新闻报错入口，开发人员可调用新闻举报接口实现类似功能。
+
+ ![新闻报错](http://nos.netease.com/knowledge/047a990c-4132-4f6f-8a62-4e3687fb0755) 
+
+- 定义
+
+```java
+/**
+ * @param infoid      新闻id
+ * @param producer    新闻生产者，user：用户，recommendation：推荐系统
+ * @param reportType  投诉类型，1-9，1：广告，2：低俗色情，3：反动不良，4：老旧重复内容，5：标题党，6：内容排版有误，7：疑似抄袭，8：谣言，9：其他
+ * @param otherReason 其他投诉原因，当reportType为9时传该参数
+ * @param listener
+ */
+public void reportNews(String infoid, String producer, String reportType, String otherReason, NNFHttpRequestListener<Result> listener)
+```
+
+其中，reportType 表示投诉类型，支持的投诉类型如下表所示，取值范围为1-9，当 reportType 为9时可通过 otherReason 参数上报投诉原因。
+
+序号 | 报错内容
+---|---
+1 | 广告
+2 | 低俗色情
+3 | 反动不良
+4 | 老旧重复内容
+5 | 标题党
+6 | 内容排版有误
+7 | 疑似抄袭
+8 | 谣言
+9 | 其他
+
+- 示例
+
+```java
+NNewsFeedsSDK.getInstance().reportNews(newsInfo.infoId, newsInfo.producer, reportType, reportReason, new NNFHttpRequestListener<Result>() {
+    @Override
+    public void onHttpSuccessResponse(Result result) {
+        
+    }
+
+    @Override
+    public void onHttpErrorResponse(int code, String errorMsg) {
+
+    }
+});
+```
+
+根据Result的code字段区分是否举报成功，0：举报成功，非0：举报失败。
 
 ----
 
@@ -928,6 +967,7 @@ new NNewsFeedsSDK.Builder()
     .setCacheEnabled(true)
     .build();
 ```
+
 用户只使用数据SDK可以关闭缓存，由用户自定义缓存的实现；若用户使用了UI SDK，不建议关闭缓存，会引起部分数据的显示等异常。
 
 ---
@@ -1039,7 +1079,7 @@ NNewsFeedsSDK.getInstance().deleteAllCachedNews(new NNFClearCacheListener() {
 /**
  * 计算缓存的大小
  * 缓存的大小，单位 bytes
- * 缓存较大的时候时候计算时间较长，请合理使用
+ * 同步计算，缓存较大的时候时候计算时间较长，请合理使用
  *
  * @return The length, in bytes
  */
@@ -1060,7 +1100,7 @@ long cacheSize = NNewsFeedsSDK.getInstance().getCacheSize();
 
 值得注意的是，用户行为统计接口均封装在 NNFTracker 中。**请确保 SDK 初始化后再调用 NNFTracker 中的接口，否则会抛 NullPointerException。**
 
-### 曝光事件（v1.2新增）
+### 曝光事件
 
 为了增强推荐效果，当新闻曝光时，建议调用曝光接口进行曝光的行为事件统计。
 
@@ -1550,7 +1590,9 @@ channels| NNFChannelInfo[]| 频道列表
 channelId| String| | 频道ID
 channelName | String ||频道名称
 channelOrder | int | 1 | 频道显示的顺序
-channelType | int | 1 | （v1.3新增）频道类型，其中4表示自营频道
+channelType | int | 1 | 频道类型，其中4表示自营频道
+channelTag | String | | 频道唯一标识，channelId可能会改变，但是channelTag会唯一不变
+bannerType | String | 0 | 轮播图的展现形式，0：自动轮播图和轮播图置顶均关闭，1：自动轮播图，2：轮播图置顶
 
 - 新闻列表：NNFNews
 
@@ -1559,6 +1601,7 @@ channelType | int | 1 | （v1.3新增）频道类型，其中4表示自营频道
 infos| NNFNewsInfo[]| 普通新闻
 banners | NNFNewsInfo[] |轮播图
 tops | NNFNewsInfo[] |置顶新闻
+bannerType | int | 轮播图的展示形式，0：自动轮播图和轮播图置顶均关闭，1：自动轮播图，2：轮播图置顶
 
 - 单个新闻摘要：NNFNewsInfo
 
