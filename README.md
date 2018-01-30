@@ -6,6 +6,7 @@
 - 正文相关推荐新增广告位
 - 图集&视频新增举报功能
 - 单个频道时，隐藏频道导航栏
+- 以provided形式依赖除appcompat-v7以外的第三方库
 
 ## v1.4.5
 
@@ -48,6 +49,7 @@
 - 新增新闻举报接口
 - NNFChannelInfo新增channelTag字段
 - 不再依赖个推推送
+- 以provided形式依赖fastjson
 
 ## v1.4.6
 - 升级广点通sdk 4.10.550 -> 4.14.558
@@ -59,7 +61,7 @@
 - 整合列表&正文缓存
 - 信息流&正文广告支持大图和三图模式
 - 支持内容负反馈
-	* 新闻摘要NNFNewsInfo新增feedbacks字段
+	* 新闻摘要NNFNewsInfo新增feedbacks字段
 	* 新增NNFeedbackInfo
 	* 新增负反馈行为上报接口
 - 针对非Activity的Context调用startActivity时，添加FLAG_ACTIVITY_NEW_TASK标记
