@@ -90,10 +90,12 @@ allprojects {
 
 
 ```java
-compile "com.readystatesoftware.systembartint:systembartint:1.0.+"(必须)
-compile 'com.github.bumptech.glide:glide:3.7.0'(必须)
-compile "com.android.support:recyclerview-v7:25.3.1"(必须)
-compile 'com.getui:sdk:2.11.1.0' (非必须，使用个推时引入)
+// data-sdk依赖库
+compile 'com.alibaba:fastjson:1.2.8'
+// ui-sdk依赖库
+compile "com.readystatesoftware.systembartint:systembartint:1.0.+"
+compile 'com.github.bumptech.glide:glide:3.7.0'
+compile "com.android.support:recyclerview-v7:25.3.1"
 
 compile 'com.netease.youliao:newsfeeds-data:x.x'
 compile 'com.netease.youliao:newsfeeds-ui:x.x'
@@ -194,15 +196,6 @@ NNFLogUtil.LOG_VERBOSE | 打印 ERROR、WARN、INFO、DEBUG、VERBOSE
 -keep class android.support.v4.app.NotificationCompat**{
     public *;
 }
-
-# 个推
--dontwarn com.igexin.**
--keep class com.igexin.** { *; }
--keep class org.json.** { *; }
--keep public class * extends com.igexin.sdk.GTIntentService
-
--keep class android.support.v4.app.NotificationCompat { *; }
--keep class android.support.v4.app.NotificationCompat$Builder { *; }
 
 # fastjson
 -keep class javax.ws.rs.** { *; }
