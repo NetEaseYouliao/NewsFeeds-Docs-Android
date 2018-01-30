@@ -40,13 +40,13 @@ provided 'com.alibaba:fastjson:1.2.8'
 
 - appcompat-v7
 
-我们的SDK以`provided`的形式依赖了appcompat-v7，appcompat-v7版本号为25.3.1，请确保您App依赖的appcompat-v7版本与25.3.1兼容。
+我们的SDK以`compile`的形式依赖了appcompat-v7，appcompat-v7版本号为25.3.1，请确保您App依赖的appcompat-v7版本与25.3.1兼容。
 
 ```java
-provided 'com.android.support:appcompat-v7:25.3.1'
+compile 'com.android.support:appcompat-v7:25.3.1'
 ```
 
-- 广告
+- 腾讯广点通
 
 我们的SDK以`compile`的形式内嵌了腾讯广点通广告SDK V4.14.558，App开发人员在使用本SDK的时候，确保工程中未使用广点通的SDK。
 
@@ -62,7 +62,7 @@ compile files('libs/GDTUnionSDK.4.14.558.min.jar')
 
 - jcenter远程依赖
 
-SDK内部以`provided`的形式依赖了 appcompat-v7 和 fastjson，因此，app 开发人员需要先行依赖这两个库。
+SDK内部以`provided`的形式依赖了fastjson，因此，app 开发人员需要先行依赖这个库。fastjson版本号请参考**外部依赖说明**部分。
 
 我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.5.0
 
@@ -70,8 +70,7 @@ gradle.build 配置示例如下：
 
 ```java
 // data sdk依赖
-compile 'com.android.support:appcompat-v7:25.3.1'
-compile 'com.alibaba:fastjson:1.2.8'
+compile 'com.alibaba:fastjson:1.2.8'(必须)
 
 compile 'com.netease.youliao:newsfeeds-data:x.x'
 ```
@@ -292,25 +291,26 @@ public class YLApplication extends Application {
         }
     }
 
-    /**
-     * 根据进程 ID 获取进程名
-     *
-     * @param pid
-     * @return
-     */
-    public static String getProcessName(Context context, int pid) {
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> processInfoList = am.getRunningAppProcesses();
-        if (processInfoList == null) {
-            return null;
-        }
-        for (ActivityManager.RunningAppProcessInfo processInfo : processInfoList) {
-            if (processInfo.pid == pid) {
-                return processInfo.processName;
-            }
-        }
-        return null;
-    }
+	/**
+	 * 根据进程 ID 获取进程名
+	 *
+	 * @param pid
+	 * @return
+	 */
+	public static String getProcessName(Context context, int pid) {
+	    ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+	    List<ActivityManager.RunningAppProcessInfo> processInfoList = am.getRunningAppProcesses();
+	    if (processInfoList == null) {
+	        return null;
+	    }
+	    for (ActivityManager.RunningAppProcessInfo processInfo : processInfoList) {
+	        if (processInfo.pid == pid) {
+	            return processInfo.processName;
+	        }
+	    }
+	    return null;
+	}
+
 }
 ```
 

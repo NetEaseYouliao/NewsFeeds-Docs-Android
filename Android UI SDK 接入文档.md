@@ -55,20 +55,21 @@ NewsFeeds UI SDK提供的功能如下：
 
 我们的data-sdk和ui-sdk内部依赖了一些第三方库，
 
-其中, data-sdk依赖了如下第三方库：
+其中, data-sdk以`provided`的形式依赖了如下第三方库：
 
 ```java
-compile 'com.android.support:appcompat-v7:25.3.1'
-compile 'com.alibaba:fastjson:1.2.8'
-provided 'com.getui:sdk:2.11.1.0'
+provided 'com.alibaba:fastjson:1.2.8'
 ```
 
-ui-sdk依赖了如下第三方库：
+ui-sdk以`provided`的形式依赖了如下第三方库：
 
 ```java
-compile "com.readystatesoftware.systembartint:systembartint:1.0.+"
-compile 'com.github.bumptech.glide:glide:3.7.0'
-compile "com.android.support:recyclerview-v7:25.3.1"
+// 状态栏
+provided "com.readystatesoftware.systembartint:systembartint:1.0.+"
+// 图片库
+provided 'com.github.bumptech.glide:glide:3.7.0'
+// recyclerview列表
+provided "com.android.support:recyclerview-v7:25.3.1"
 ```
 
 若您的App也依赖了这些第三方库，请确保您依赖的第三方库的版本与我们sdk依赖的第三方库版本兼容。
@@ -85,10 +86,13 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前ui-sdk最新版为1.4.5，data-sdk最新版为1.4.5
+第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前ui-sdk最新版为1.5.0，data-sdk最新版为1.5.0
 
 
 ```java
+compile "com.readystatesoftware.systembartint:systembartint:1.0.+"(必须)
+compile 'com.github.bumptech.glide:glide:3.7.0'(必须)
+compile "com.android.support:recyclerview-v7:25.3.1"(必须)
 compile 'com.getui:sdk:2.11.1.0' (非必须，使用个推时引入)
 
 compile 'com.netease.youliao:newsfeeds-data:x.x'
@@ -104,7 +108,8 @@ public class YLApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        String processName = getProcessName();
+        Context context = getApplicationContext();
+        String processName = getProcessName(context, Process.myPid());
         // 判断进程名，保证只有主进程才初始化网易有料UI SDK
         if (!TextUtils.isEmpty(processName) && processName.equals(this.getPackageName())) {
             /**
@@ -122,18 +127,25 @@ public class YLApplication extends Application {
         }
     }
 
-    public static String getProcessName() {
-        try {
-            File file = new File("/proc/" + android.os.Process.myPid() + "/" + "cmdline");
-            BufferedReader mBufferedReader = new BufferedReader(new FileReader(file));
-            String processName = mBufferedReader.readLine().trim();
-            mBufferedReader.close();
-            return processName;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+	/**
+	 * 根据进程 ID 获取进程名
+	 *
+	 * @param pid
+	 * @return
+	 */
+	public static String getProcessName(Context context, int pid) {
+	    ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+	    List<ActivityManager.RunningAppProcessInfo> processInfoList = am.getRunningAppProcesses();
+	    if (processInfoList == null) {
+	        return null;
+	    }
+	    for (ActivityManager.RunningAppProcessInfo processInfo : processInfoList) {
+	        if (processInfo.pid == pid) {
+	            return processInfo.processName;
+	        }
+	    }
+	    return null;
+	}
 }
 ```
 
