@@ -59,7 +59,7 @@
 - 整合列表&正文缓存
 - 信息流&正文广告支持大图和三图模式
 - 支持内容负反馈
-	* 新闻摘要NNFNewsInfo新增feedbacks字段
+	* 新闻摘要NNFNewsInfo新增feedbacks字段
 	* 新增NNFeedbackInfo
 	* 新增负反馈行为上报接口
 - 针对非Activity的Context调用startActivity时，添加FLAG_ACTIVITY_NEW_TASK标记
