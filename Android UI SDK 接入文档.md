@@ -86,7 +86,7 @@ allprojects {
 }
 ```
 
-第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前ui-sdk最新版为1.5.0，data-sdk最新版为1.5.0
+第二步，在app module下的build.gradle中同时引入我们的data-sdk和ui-sdk的依赖，请自行将x.x替换为版本号，目前ui-sdk最新版为1.6.0，data-sdk最新版为1.6.0
 
 
 ```java
@@ -189,14 +189,6 @@ NNFLogUtil.LOG_VERBOSE | 打印 ERROR、WARN、INFO、DEBUG、VERBOSE
 由于我们的data-sdk内部依赖了腾讯广点通和个推，因此，混淆时也需要添加如下混淆规则：
 
 ```java
-# 腾讯广点通
--keep class com.qq.e.** {
-    public protected *;
-}
--keep class android.support.v4.app.NotificationCompat**{
-    public *;
-}
-
 # fastjson
 -keep class javax.ws.rs.** { *; }
 -dontwarn com.alibaba.fastjson.**
@@ -953,6 +945,153 @@ public void performRefresh()
 public void setSelectedChannel(String channelId)
 ```
 可调用该接口定位到指定频道。
+
+---
+
+#### 列表自定义数据展现
+
+当发起新闻列表请求时（例如下拉刷新或上拉加载更多），app开发人员可能希望往信息流新闻列表中插入自己的数据，为实现该扩展功能，app开发人员需要为`NNFeedsFragment`实例设置监听回调`NNFOnFeedsExtendCallback`
+
+```java
+/**
+ * 设置自定义扩展回调
+ *
+ * @param callback
+ */
+public void setOnFeedsExtendCallback(NNFOnFeedsExtendCallback callback)
+```
+
+其中`NNFOnFeedsExtendCallback`定义如下：
+
+```java
+public abstract class NNFOnFeedsExtendCallback {
+    public abstract void onStart(NNFChannelInfo channelInfo, int loadType, Object extraData);
+
+    public abstract void onFinish(NNFChannelInfo channelInfo, int loadType, Object extraData);
+}
+```
+
+当发起新闻列表请求时（例如下拉刷新），`NNFOnFeedsExtendCallback`的`onStart`方法被触发，`channelInfo`为当前发起新闻列表请求的频道；`loadType`为0时，表示下拉刷新，为1时，表示上拉加载更多，`extraData`为用户初始化`NNFeedsFragment`实例时传入的自定义数据。
+
+当网络请求成功时，SDK内部并没有结束此次刷新状态（比如列表头部一直转圈中），而是触发`NNFOnFeedsExtendCallback`的`onFinish`方法并处于等待中，直到app开发人员调用`insertUserData`方法，传入要扩展的的新闻数据才会结束此次刷新操作。
+
+```java
+public void insertUserData(NNFChannelInfo channelInfo, int loadType, int[] indexArr, NNFExtendNewsInfo[] infos)
+```
+
+`indexArr` 表示待插入的位置列表； `infos` 表示待插入的新闻摘要列表。为区别于SDK内部的新闻摘要`NNFNewsInfo`，约定app开发人员传入的新闻摘要只能是`NNFNewsInfo`的派生类`NNFExtendNewsInfo`。app开发人员只需按照`NNFNewsInfo`的字段格式组织新闻即可。
+
+当用户插入的新闻摘要被点击时，SDK默认的点击回调不会处理，app开发人员需要自行实现点击事件，因此，设置了`NNFOnFeedsExtendCallback`回调，就必须自定义`NNFOnFeedsCallback`。
+
+- 示例代码
+
+```java
+mFeedsFragment = NNewsFeedsUI.createFeedsFragment(new FeedsCallbackSample(), null, null);
+mFeedsFragment.setOnFeedsExtendCallback(new NNFOnFeedsExtendCallback() {
+    @Override
+    public void onStart(NNFChannelInfo channelInfo, int loadType, Object extraData) {
+        Log.e("数据扩展", "onStart@channel = " + channelInfo.channelName + ", @loadType = " + loadType);
+    }
+
+    @Override
+    public void onFinish(NNFChannelInfo channelInfo, int loadType, Object extraData) {
+        Log.e("数据扩展", "onFinish@channel = " + channelInfo.channelName + ", @loadType = " + loadType);
+
+        String json = "{\n" +
+                "\t\t\t\"producer\": \"recommendation\",\n" +
+                "\t\t\t\"recId\": \"736633ceedf146e78a5086acaa821d2b_930340049\",\n" +
+                "\t\t\t\"algInfo\": \"|HOT_GBREAK|g_break-36\",\n" +
+                "\t\t\t\"infoId\": \"DBNEGGRU00097U7S\",\n" +
+                "\t\t\t\"infoType\": \"ad\",\n" +
+                "\t\t\t\"title\": \"iOS 11沦陷，美执法部门已能破解几乎所有iPhone\",\n" +
+                "\t\t\t\"summary\": \"2月28日消息，据《福布斯》杂志报道，美国的执法部门最近取得了一项破解iPhone手机的重大技术突破，然而对全球众多苹果手机的消费者来说，这或许会对他们造成新的隐私问题。\",\n" +
+                "\t\t\t\"source\": \"网易科技报道\",\n" +
+                "\t\t\t\"imgType\": 2,\n" +
+                "\t\t\t\"thumbnails\": [{\n" +
+                "\t\t\t\t\"width\": 300,\n" +
+                "\t\t\t\t\"height\": 200,\n" +
+                "\t\t\t\t\"url\": \"http://irec.nosdn.127.net/icovr-20180228-2229684e11bf912a0e1aeefed2ad5f4e.jpg\",\n" +
+                "\t\t\t\t\"note\": null\n" +
+                "\t\t\t}],\n" +
+                "\t\t\t\"deliverId\": null,\n" +
+                "\t\t\t\"publishTime\": \"2018-02-28 10:42:43\",\n" +
+                "\t\t\t\"feedbacks\": [{\n" +
+                "\t\t\t\t\"name\": \"不感兴趣\",\n" +
+                "\t\t\t\t\"value\": \"D_0\"\n" +
+                "\t\t\t}, {\n" +
+                "\t\t\t\t\"name\": \"内容质量差\",\n" +
+                "\t\t\t\t\"value\": \"D_1\"\n" +
+                "\t\t\t}, {\n" +
+                "\t\t\t\t\"name\": \"看过了\",\n" +
+                "\t\t\t\t\"value\": \"D_2\"\n" +
+                "\t\t\t}, {\n" +
+                "\t\t\t\t\"name\": \"不想看:网易科技报道\",\n" +
+                "\t\t\t\t\"value\": \"S_网易科技报道\"\n" +
+                "\t\t\t}, {\n" +
+                "\t\t\t\t\"name\": \"不想看:手机\",\n" +
+                "\t\t\t\t\"value\": \"C_36\"\n" +
+                "\t\t\t}, {\n" +
+                "\t\t\t\t\"name\": \"不想看:执法部门\",\n" +
+                "\t\t\t\t\"value\": \"P_C手机_I执法部门\"\n" +
+                "\t\t\t}, {\n" +
+                "\t\t\t\t\"name\": \"不想看:ios\",\n" +
+                "\t\t\t\t\"value\": \"P_C手机_Iios\"\n" +
+                "\t\t\t}]\n" +
+                "\t\t}";
+
+        NNFExtendNewsInfo newsInfo = NNFJsonUtils.fromJson(json, NNFExtendNewsInfo.class);
+        int[] indexArr = new int[]{3};
+        NNFExtendNewsInfo[] infos = new NNFExtendNewsInfo[]{newsInfo};
+
+        mFeedsFragment.insertUserData(channelInfo, loadType, indexArr, infos);
+    }
+});
+```
+
+例如上例中插入了一条infoType为ad的新闻，则app开发人员需要自定义点击回调，示例如下：
+
+```java
+private class FeedsCallbackSample extends NNFOnFeedsCallback {
+    @Override
+    public void onNewsClick(Context context, NNFNewsInfo newsInfo, Object extraData) {
+        if (null != newsInfo && null != newsInfo.infoType) {
+            switch (newsInfo.infoType) {
+                case NNFUIConstants.INFO_TYPE_ARTICLE:
+                    /**
+                     * 文章类新闻展示页面
+                     */
+                    SampleArticleActivity.start(context, newsInfo);
+                    break;
+                case NNFUIConstants.INFO_TYPE_PICSET:
+                    /**
+                     * 图集类新闻展示页面
+                     */
+                    SamplePicSetGalleryActivity.start(context, newsInfo);
+                    break;
+                case NNFUIConstants.INFO_TYPE_VIDEO:
+                    /**
+                     * 视频类新闻展示页面
+                     */
+                    DefaultMoreVideosActivity.start(context, newsInfo);
+                    break;
+                case NNFUIConstants.INFO_TYPE_AD:
+	                /**
+	                 * 用户插入的数据
+	                 */
+                    Intent intent = new Intent();
+                    intent.setAction("android.intent.action.VIEW");
+                    Uri content_url = Uri.parse("https://www.baidu.com/");
+                    intent.setData(content_url);
+                    if (!(context instanceof Activity)) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    }
+                    context.startActivity(Intent.createChooser(intent, "请选择浏览器"));
+                    break;
+            }
+        }
+    }
+}
+```
 
 ---
 
