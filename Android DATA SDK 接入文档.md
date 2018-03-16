@@ -24,7 +24,6 @@ NewsFeedsSDK提供的功能如下：
 - NNFNews：新闻列表的model类
 - NNFNewsInfo：单个新闻的model类
 - NNFNewsDetails：新闻详情的model类
-- NNFAdInfo：单个广告的model类
 
 # 开发准备
 
@@ -45,16 +44,6 @@ provided 'com.alibaba:fastjson:1.2.8'
 ```java
 compile 'com.android.support:appcompat-v7:25.3.1'
 ```
-
-- 腾讯广点通
-
-我们的SDK以`compile`的形式内嵌了腾讯广点通广告SDK V4.14.558，App开发人员在使用本SDK的时候，确保工程中未使用广点通的SDK。
-
-```java
-compile fileTree(dir: 'libs', include: ['*.jar'])
-compile files('libs/GDTUnionSDK.4.14.558.min.jar')
-```
-
 ---
 
 
@@ -64,7 +53,7 @@ compile files('libs/GDTUnionSDK.4.14.558.min.jar')
 
 SDK内部以`provided`的形式依赖了fastjson，因此，app 开发人员需要先行依赖这个库。fastjson版本号请参考**外部依赖说明**部分。
 
-我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.5.0
+我们的sdk已同步到Jcenter仓库，开发人员只需在app module下的build.gradle中引入我们sdk的依赖，请自行将x.x替换为版本号，目前最新版为1.6.0
 
 gradle.build 配置示例如下：
 
@@ -77,161 +66,7 @@ compile 'com.netease.youliao:newsfeeds-data:x.x'
 
 ---
 
-### 3. 权限
-
-从v1.2开始，我们的SDK内部提供广告功能，为了成功拉取到广告，需要在CMS上开启广告业务开关，并在AndroidManifest.xml中添加权限声明：
-
-```java
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-<uses-permission android:name="android.permission.READ_PHONE_STATE" />
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />    <!-- 如果需要精确定位的话请加上此权限 -->
-<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-```
-
-以及添加如下广告组件：
-
-```java
-<!-- 声明SDK所需要的组件 -->
-<service
-    android:name="com.qq.e.comm.DownloadService"
-    android:exported="false"/>
-<!-- 请开发者注意字母的大小写，ADActivity，而不是AdActivity -->
-<activity
-    android:name="com.qq.e.ads.ADActivity"
-    android:configChanges="keyboard|keyboardHidden|orientation|screenSize"/>
-```
-
-如果您打包App时的targetSdkVersion >= 23：请先获取到SDK要求的所有权限，然后调用SDK获取到的新闻列表和新闻详情才会包含广告数据。否则SDK返回的新闻列表和新闻详情将不包含广告数据。我们建议您在App启动时就去获取SDK需要的权限。您可以参考如下权限处理示例代码，权限示例代码建议写在启动页SplashActivity中：
-
-```java
-@Override
-protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.activity_splash);
-    ...
-
-    // 如果targetSDKVersion >= 23，就要申请权限
-    if (Build.VERSION.SDK_INT >= 23) {
-        checkAndRequestPermission();
-    }
-}
-
-/**
- * ----------非常重要----------
- * <p>
- * Android6.0以上的权限适配简单示例：
- * <p>
- * 如果targetSDKVersion >= 23，那么必须要申请到所需要的权限，再调用SDK，否则SDK返回的
- * 数据不含广告。
- * <p>
- * 这里的代码里是一个基本的权限申请示例，请开发者根据自己的场景合理地编写这部分代码来实现权限申请。
- * 注意：下面的 checkSelfPermission 和 requestPermissions 方法都是在Android6.0的SDK中增加的API，如果您的App还没有适配到Android6.0以上，则不需要调用这些方法。
- */
-@TargetApi(Build.VERSION_CODES.M)
-private void checkAndRequestPermission() {
-    List<String> lackedPermission = new ArrayList<String>();
-    if (!(checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED)) {
-        lackedPermission.add(Manifest.permission.READ_PHONE_STATE);
-    }
-
-    if (!(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
-        lackedPermission.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-    }
-
-    if (!(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)) {
-        lackedPermission.add(Manifest.permission.ACCESS_FINE_LOCATION);
-    }
-
-    if (lackedPermission.size() > 0) {
-        // 请求所缺少的权限，在onRequestPermissionsResult中再看是否获得权限
-        String[] requestPermissions = new String[lackedPermission.size()];
-        lackedPermission.toArray(requestPermissions);
-        requestPermissions(requestPermissions, 1024);
-    }
-}
-
-private boolean hasAllPermissionsGranted(int[] grantResults) {
-    for (int grantResult : grantResults) {
-        if (grantResult == PackageManager.PERMISSION_DENIED) {
-            return false;
-        }
-    }
-    return true;
-}
-
-@Override
-public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    if (!(requestCode == 1024 && hasAllPermissionsGranted(grantResults))) {
-        // 如果用户没有授权，那么应该说明意图，引导用户去设置里面授权。
-        Toast.makeText(this, "应用缺少必要的权限！请点击\"权限\"，打开所需要的权限。", Toast.LENGTH_LONG).show();
-        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivity(intent);
-        finish();
-    }
-}
-
-```
-
----
-
-### 4. 文件访问兼容性
-
-由于SDK返回的广告可能是App下载类广告，因此，当targetSDKVersion >= 24时，需要进行文件访问兼容处理。如果您打包时的targetSDKVersion >= 24，为了让SDK能够正常下载、安装App类广告，必须按照下面的三个步骤做兼容性处理。注意：如果您的targetSDKVersion < 24，不需要做这个兼容处理。
-
-（1）在 AndroidManifest.xml 中的 Application 标签中添加 provider 标签，接入代码如下所示：
-
-```java
-<application
-    android:allowBackup="true"
-    android:icon="@drawable/gdticon"
-    android:label="@string/app_name"
-    android:theme="@style/AppTheme">
-
-    <!-- targetSDKVersion >= 24时才需要添加这个provider。provider的authorities属性的值为${applicationId}.fileprovider，请开发者根据自己的${applicationId}来设置这个值 -->
-    <provider
-        android:name="android.support.v4.content.FileProvider"
-        android:authorities="${applicationId}.fileprovider"
-        android:exported="false"
-        android:grantUriPermissions="true">
-        <meta-data
-            android:name="android.support.FILE_PROVIDER_PATHS"
-            android:resource="@xml/gdt_file_path" />
-    </provider>
-
-    <!-- 声明SDK所需要的组件 -->
-    <service
-        android:name="com.qq.e.comm.DownloadService"
-        android:exported="false"/>
-    <!-- 请开发者注意字母的大小写，ADActivity，而不是AdActivity -->
-    <activity
-        android:name="com.qq.e.ads.ADActivity"
-        android:configChanges="keyboard|keyboardHidden|orientation|screenSize"/>
-
-    ... ...
-</application>
-```
-
-需要注意的是provider的authorities值为 `${applicationId}.fileprovider`，对于每一个开发者而言，这个值都是不同的，`${applicationId}` 在代码中和Context.getPackageName()值相等，是应用的唯一id，例如 "com.netease.youliao.demo"。
-
-（2）在项目结构下的res目录下添加一个xml文件夹，再新建一个`gdt_file_path.xml`的文件，文件内容如下：
-
-```java
-<paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 这个下载路径不可以修改，必须是GDTDOWNLOAD -->
-    <external-path name="gdt_sdk_download_path" path="GDTDOWNLOAD" />
-</paths>
-```
-
-（3）混淆配置文件中加上：`-keep class android.support.v4.**{ *;}`，避免support-V4包中的FileProvider代码被混淆。
-
----
-
-### 5. 混淆
+### 3. 混淆
 
 若您的App开启了混淆，请为我们的SDK添加下述混淆规则
 
@@ -241,22 +76,9 @@ public void onRequestPermissionsResult(int requestCode, String[] permissions, in
 -keep class com.netease.youliao.newsfeeds.**{*;}
 ```
 
-由于我们的SDK内部依赖了腾讯广点通和fastjson，因此，混淆时也需要添加如下混淆规则：
+由于我们的SDK内部依赖了fastjson，因此，混淆时也需要添加如下混淆规则：
 
 ```java
-# 腾讯广点通
--keep class com.qq.e.** {
-    public protected *;
-}
--keep class android.support.v4.app.NotificationCompat**{
-    public *;
-}
-# targetSDKVersion >= 24添加该语句，避免support-V4包中的FileProvider代码被混淆
--keep class android.support.v4.**{ *;}
-
--keep class android.support.v4.app.NotificationCompat { *; }
--keep class android.support.v4.app.NotificationCompat$Builder { *; }
-
 # fastjson
 -keep class javax.ws.rs.** { *; }
 -dontwarn com.alibaba.fastjson.**
@@ -423,7 +245,7 @@ channels| NNFChannelInfo[]| 频道列表
 channelId| String| | 频道ID
 channelName | String ||频道名称
 channelOrder | int | 1 | 频道显示的顺序
-channelType | int | 1 | （v1.3新增）频道类型，其中4表示自营频道
+channelType | int | 1 | 频道类型，其中4表示自营频道
 
 - 网络请求结果回调接口说明
 
@@ -546,25 +368,19 @@ banners | NNFNewsInfo[] | 轮播图或头图新闻
 tops | NNFNewsInfo[] | 置顶新闻
 infos| NNFNewsInfo[]| 普通新闻
 
-其中，单个新闻（NNFNewsInfo）按类型（infoType）可分为：文章(article)、图集(picset)、视频(video)、广告(ad)。
+其中，单个新闻（NNFNewsInfo）按类型（infoType）可分为：文章(article)、图集(picset)、视频(video)。
 
 (1) 轮播图
 
-轮播图包含的新闻类型有：文章(article)、图集(picset)、广告(ad)。
-
-这里要注意的是，只有在CMS上开启广告业务开关且拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的轮播图中才可能出现广告。
+轮播图包含的新闻类型有：文章(article)、图集(picset)。
 
 (2) 置顶新闻
 
 置顶新闻包含的新闻类型有：文章(article)、图集(picset)、视频(video)。
 
-这里要注意的是，置顶新闻不含广告(ad)。
-
 (3) 普通新闻列表
 
-普通新闻包含的新闻类型有：文章(article)、图集(picset)、视频(video)、广告(ad)。
-
-这里要注意的是，只有在CMS上开启广告业务开关且拉取广告的必要权限均被授权的条件下，广告才能拉取成功，返回的普通新闻列表中才可能出现广告。
+普通新闻包含的新闻类型有：文章(article)、图集(picset)、视频(video)。
 
 下拉刷新时，接口返回头图新闻、置顶新闻、普通新闻，典型的Feed流展示逻辑是按照从上到下为头图新闻、置顶新闻、普通新闻的顺序，将下拉刷新的数据插入到当前Feed流头部；上拉加载更多时，接口只返回普通新闻，典型的Feed流展示逻辑是将上拉加载更多的数据追加到当前Feed流尾部。App开发人员可参考如下示例代码进行数据展示：
 
@@ -635,7 +451,6 @@ thumbnails | NNFThumbnailInfo[] | 新闻缩略图
 imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
 num | int | 图集中图片数量，仅当infoType为图集picset时才有值
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
-ad | NNFAdCell | 广告信息，当且仅当infoType为ad时infoType
 readStatus | int | 0：未读 ； 1： 已读
 
 这里要注意的是，单个新闻摘要按照 imgType 可分为三图模式、大图模式、单图模式、无图模式。不管是哪一种imgType，具体的缩略图均存于thumbnails字段。
@@ -742,7 +557,7 @@ NNewsFeedsSDK.getInstance().reportNews(newsInfo.infoId, newsInfo.producer, repor
 
 ### 各种类型的新闻展现
 
-当新闻列表中的单个新闻（NNFNewsInfo）被点击时，App开发人员需要根据新闻类型（infoType）实现对应的展现页面。例如，当infoType为video时，需要开始播放视频或者跳转到视频播放页面；当infoType为ad时，需要跳转到广告落地页面；当infoType为article时，需要跳转到文章详情页面；当infoType为picset时，需要跳转到图集展示页面。可参考如下代码片段：
+当新闻列表中的单个新闻（NNFNewsInfo）被点击时，App开发人员需要根据新闻类型（infoType）实现对应的展现页面。例如，当infoType为video时，需要跳转到视频播放页面；当infoType为article时，需要跳转到文章详情页面；当infoType为picset时，需要跳转到图集展示页面。可参考如下代码片段：
 
 ```java
 String infoType = newsInfo.infoType;
@@ -751,13 +566,6 @@ switch (infoType){
 	    // 跳转到视频类新闻展示页
 	    MoreVideoActivity.start(context, newsInfo);
 	    ...
-	    break;
-	case "ad":
-	    // 跳转到广告落地页
-	    NNFAdCell ad = newsInfo.ad;
-	    if (null != ad) {
-	        NNewsFeedsSDK.getInstance().onAdClicked(ad.adInfo, view);
-	    }
 	    break;
 	case "article":
 	    // 跳转到文章类新闻展示页
@@ -777,14 +585,98 @@ switch (infoType){
 infoId| String| 新闻ID
 infoType| String| 新闻类型：文章(article)、图集(picset)、视频(video)
 thumbnails | NNFThumbnailInfo[] | 新闻缩略图
-imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：缩略图模式，0：无图
+imgType | int | 封面缩略图模式，0：无图，1：单图，2：大图，3：三图
 num | int | 图集中图片数量，仅当infoType为图集picset时才有值
-videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
-ad | NNFAdCell | 广告信息，当且仅当infoType为ad时才有值 
+duration | int | 视频时长（单位：秒）
 
-##### 1. 视频类新闻展现
+##### 1. 文章类新闻展现
 
-由NNFNewsInfo数据模型可知，当 infoType 为 video 时，NNFNewsInfo中的videos字段会给出视频源信息，App开发人员可根据该视频源信息完成视频的下载、播放等交互逻辑。
+NNFNewsInfo数据模型只给出了文章类新闻的摘要信息，若要获取文章正文，需要调用`loadNewsDetails`接口拉取文章正文信息。v1.6之前的版本只需传入`newsInfo.infoId`、`newsInfo.producer`即可获取新闻列表；v1.6版本以后，由于获取新闻详情需要传入`newsInfo.recId`参数，所以，为了防止后续版本新增请求参数，强烈建议开发者传入NNFNewsInfo类型的实例作为列表请求参数。
+
+- 定义
+
+```java
+/**
+ * 获取新闻详情
+ *
+ * @param newsInfo 新闻摘要
+ * @param listener 网络请求回调
+ */
+public void loadNewsDetails(NNFNewsInfo newsInfo, final NNFHttpRequestListener<NNFNewsDetails> listener)
+```
+- 示例
+
+```java
+NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo, new NNFHttpRequestListener<NNFNewsDetails>() {
+    @Override
+    public void onHttpSuccessResponse(NNFNewsDetails result) {
+        
+    }
+    
+    @Override
+    public void onHttpErrorResponse(int code, String errorMsg) {
+    
+    }
+});
+```
+
+- 接口返回 NNFNewsDetails
+
+新闻详情NNFNewsDetails字段说明：
+
+名称 | 类型 | 示例 | 描述
+---|---|---|---
+infoId| String| | 新闻ID
+infoType| String| article/picset/video | 新闻类型，文章/图集/视频
+title | String || 新闻标题
+publishTime | String || 发布时间，格式：“yyyy-MM-dd HH:mm:ss”
+source | String || 新闻来源
+content | String |  | 新闻正文
+imgs | NNFImageInfo[] |  | 图片列表， infoType=article表示正文图片列表， infoType=picset该字段为空， infoType=video该字段为空
+
+单个图片数据模型NNFImageInfo字段说明：
+
+名称 | 类型 | 描述
+---|---|---|---
+url | String | 新闻图片url
+height | int | 新闻图片高度
+width | int | 新闻图片宽度
+picType | int | 新闻图片类型
+note | String | 图片描述，infoType为picset该字段才有值
+
+从模型字段描述可知，当NNFNewsDetails.infoType为article时，文章类新闻正文由content字段给出，正文中图片链接存于imgs字段。
+
+---
+
+##### 2. 图集类新闻展现
+
+NNFNewsInfo数据模型只给出了图集类新闻的缩略图信息，若要获取图集的图片列表，需要调用`loadNewsDetails`接口拉取图集详情信息。`loadNewsDetails`接口定义及示例请参考文章类新闻展现部分。
+
+当NNFNewsDetails.infoType为picset时，imgs字段表示图集中图片列表。
+
+新闻详情NNFNewsDetails部分字段说明：
+
+名称 | 类型 | 示例 | 描述
+---|---|---|---
+infoId| String| | 新闻ID
+infoType| String| article/picset/video | 新闻类型，article：文章，picset：图集，video：视频
+imgs | NNFImageInfo[] |  | 图片列表
+
+App开发人员需要根据图片列表自行实现图集展示页。
+
+##### 3. 视频类新闻展现
+
+NNFNewsInfo数据模型只给出了视频类新闻的视频时长信息，若要获取具体的视频详情，需要调用`loadNewsDetails`接口拉取视频详情信息。`loadNewsDetails`接口定义及示例请参考文章类新闻展现部分。
+
+当NNFNewsDetails.infoType为video时，videos字段会给出视频源信息。
+
+新闻详情NNFNewsDetails部分字段说明：
+
+名称 | 类型 | 示例 | 描述
+---|---|---|---
+infoId| String| | 新闻ID
+infoType| String| article/picset/video | 新闻类型，article：文章，picset：图集，video：视频
+videos | NNFVideoCell[] |  | 视频列表， infoType=article表示正文中视频列表， infoType=picset该字段为空， infoType=video表示视频列表
 
 视频源数据模型NNFVideoCell字段说明如下：
 
@@ -806,142 +698,6 @@ App开发人员可以根据视频封面和视频宽高比渲染视频视图，�
 
 ---
 
-##### 2. 广告类新闻展现
-
-当 infoType 为 ad 时，NNFNewsInfo中的ad字段会给出广告信息，广告信息包含展示一条广告所需的标题、描述、图片地址等等。
-
-- 单条广告数据模型NNFAdInfo主要字段
-
-名称 | 类型 | 描述
----|---|---|---
-title | String | 标题，短文字,14字以内
-desc | String | 描述，长文字,30字以内
-iconUrl | String | 获取Icon图片地址
-imgUrl | String | 获取大图地址
-isApp | boolean | 返回是否为APP广告
-producer | String | 广告生产者（gdt/inmobi）
-landingURL | String | 落地页（仅producer为inmobi或ytg时有值）
-trackingMap | Map | 点击和曝光行为上报相关信息（仅producer为inmobi有值）
-thumbnailInfos | NNFThumbnailInfo[] | 缩略图数组
-imageType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
-
-广告视图的渲染由App开发人员完成。我们的SDK封装了广告点击后的落地页，为了确保广告准确计费，需要App开发人员自行调用广告曝光和广告点击接口，**在调用广告点击接口之前，一定要先调用广告曝光接口**。
-
-- 广告曝光接口定义
-
-```java
-public void reportExposure(View view)
-```
-
-其中，view为被点击的广告视图实例。
-
-- 广告曝光接口调用示例
-
-```java
-adInfo.reportExposure(view);
-```
-
-其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
-
-- 广告点击接口定义
-
-```java
-public void reportAdClickAndOpenLandingPage(View view)
-```
-
-其中，view为被点击的广告视图实例。
-
-- 广告点击接口调用示例
-
-```java
-adInfo.reportAdClickAndOpenLandingPage(view);
-```
-
-其中，adInfo 为广告数据模型，view为被点击的广告视图实例。
-
----
-
-##### 3. 文章类新闻展现
-
-NNFNewsInfo数据模型只给出了文章类新闻的摘要信息，若要获取文章正文，需要调用`loadNewsDetails`接口拉取文章正文信息。
-
-- 定义
-
-```java
-/**
- * v1.4.5版开始，无需传入infoType
- *
- * @param infoId   新闻ID
- * @param producer 新闻提供者，user表示用户自编辑新闻，recommendation表示来自个性化推荐系统
- * @param listener 网络请求回调
- */
-public void loadNewsDetails(String infoId, String producer, NNFHttpRequestListener<NNFNewsDetails> listener)
-```
-- 示例
-
-```java
-NNewsFeedsSDK.getInstance().loadNewsDetails(newsInfo.infoId, newsInfo.producer, new NNFHttpRequestListener<NNFNewsDetails>() {
-    @Override
-    public void onHttpSuccessResponse(NNFNewsDetails result) {
-        
-    }
-    
-    @Override
-    public void onHttpErrorResponse(int code, String errorMsg) {
-    
-    }
-});
-```
-
-- 接口返回 NNFNewsDetails
-
-新闻详情NNFNewsDetails字段说明：
-
-名称 | 类型 | 示例 | 描述
----|---|---|---
-infoId| String| | 新闻ID
-infoType| String| article/picset | 新闻类型，文章/图集
-category | String || 新闻类目
-title | String || 新闻标题
-publishTime | String || 发布时间
-source | String || 新闻来源
-sourceLink | String || 原文地址
-content | String |  | 新闻正文
-imgs | NNFImageInfo[] |  | 图片列表
-tag | String |  | 标签
-ad | NNFAdCell | | 广告
-
-从模型字段描述可知，当NNFNewsDetails.infoType为article时，文章类新闻正文由content字段给出，为支持图片异步加载，content中img标签被替换成了`${{index}}$`，index从0开始。正文中图片链接存于imgs字段。具体说明请参考网易有料Api Server文档。
-
-从v1.2开始，如果CMS上开启了广告业务开关且拉取广告的必要权限均被授权，用户请求新闻详情成功后，返回的 NNFNewsDetails 中可能包含广告，广告信息存于ad字段。广告的渲染与点击操作与新闻列表中的广告类似。
-
----
-
-##### 4. 图集类新闻展现
-
-NNFNewsInfo数据模型只给出了图集类新闻的缩略图信息，若要获取图集的图片列表，需要调用`loadNewsDetails`接口拉取图集详情信息。`loadNewsDetails`接口定义及示例请参考文章类新闻展现部分。
-
-当NNFNewsDetails.infoType为picset时，imgs字段表示图集中图片列表。
-
-新闻详情NNFNewsDetails部分字段说明：
-
-名称 | 类型 | 示例 | 描述
----|---|---|---
-infoId| String| | 新闻ID
-infoType| String| article/picset | 新闻类型，文章/图集
-imgs | NNFImageInfo[] |  | 图片列表
-
-单个图片数据模型NNFImageInfo字段说明：
-
-名称 | 类型 | 描述
----|---|---|---
-url | String | 新闻图片url
-height | int | 新闻图片高度
-width | int | 新闻图片宽度
-picType | int | 新闻图片类型
-note | String | 图片描述，infoType为picset该字段才有值
-
-App开发人员需要根据图片列表自行实现图集展示页。
 
 ### 缓存相关
 
@@ -1602,6 +1358,7 @@ infos| NNFNewsInfo[]| 普通新闻
 banners | NNFNewsInfo[] |轮播图
 tops | NNFNewsInfo[] |置顶新闻
 bannerType | int | 轮播图的展示形式，0：自动轮播图和轮播图置顶均关闭，1：自动轮播图，2：轮播图置顶
+channelType | int | 频道类型，4：自营频道，非4：非自营频道
 
 - 单个新闻摘要：NNFNewsInfo
 
@@ -1619,15 +1376,14 @@ updateTime | String | 新闻更新时间
 publishTime | String | 新闻创建时间
 summary | String | 新闻简介
 thumbnails | NNFThumbnailInfo[] | 新闻缩略图
-tripleImgs | NNFThumbnailInfo[] | 兼容安徽头条
 imgType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
 hasVideo | boolean | 文章是否包含视频，true：有，false：没有
 num | int | 图集中图片数量，仅当infoType为图集picset时才有值
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
-ad | NNFAdCell | 广告信息，当且仅当infoType为ad时infoType
 readStatus | int | 0：未读 ； 1： 已读
 deliverId | long | 兼容自营频道
-feedbacks | NNFeedbackInfo[] | 用户可选择的负反馈内容，最多7项，最少3项，广告没有负反馈，后台不会下发内容
+feedbacks | NNFeedbackInfo[] | 用户可选择的负反馈内容，最多7项，最少3项
+duration | int | 视频时长（单位：秒）
 
 - 单个负反馈项：NNFeedbackInfo
 
@@ -1674,7 +1430,6 @@ sourceLink | String || 原文地址
 content | String |  | 新闻正文
 imgs | NNFImageInfo[] |  | 图片列表
 tag | String |  | 标签
-ad | NNFAdCell | | 广告
 videos | NNFVideoCell[] | 视频源信息，仅当infoType为视频video时才有值 
 
 - 新闻图片模型：NNFImageInfo
@@ -1686,33 +1441,3 @@ height | int | 新闻图片高度
 width | int | 新闻图片宽度
 picType | int | 新闻图片类型
 note | String | 图片描述，infoType为picset该字段才有值
-
-- 单条广告参数模型：NNFAdCell
-
-名称 | 类型 | 描述
----|---|---|---
-adPlacementId | String | 广告位
-mediumId | String | 广告表中的媒体id
-producer | String | 广告生产者
-ip | String | 移动端公网ip
-adInfo | NNFAdInfo | 广告数据
-
-- 单条广告数据模型：NNFAdInfo
-
-名称 | 类型 | 描述
----|---|---|---
-title | String | 标题，短文字,14字以内
-desc | String | 描述，长文字,30字以内
-iconUrl | String | 获取Icon图片地址
-imgUrl | String | 获取大图地址
-isApp | boolean | 返回是否为APP广告
-producer | String | 广告生产者（gdt/inmobi）
-appStatus | int | 获取应用状态，0：未开始下载；1：已安装；2：需要更新; 4:下载中; 8:下载完成; 16:下载失败
-progress | int | 获取APP类广告下载中的下载进度
-downloadCount | long | 获取APP类广告的下载数
-appScore | int | 获取应用评级
-appPrice | Double | 获取APP类应用价格
-landingURL | String | 落地页（仅producer为inmobi有值）
-trackingMap | Map | 点击和曝光行为上报相关信息（仅producer为inmobi有值）
-thumbnailInfos | NNFThumbnailInfo[] | 缩略图数组
-imageType | int | 缩略图类型，3：三图模式， 2：大图模式，1：单图模式，0：无图
