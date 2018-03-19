@@ -986,17 +986,34 @@ public void insertUserData(NNFChannelInfo channelInfo, int loadType, int[] index
 - 示例代码
 
 ```java
-mFeedsFragment = NNewsFeedsUI.createFeedsFragment(new FeedsCallbackSample(), null, null);
-mFeedsFragment.setOnFeedsExtendCallback(new NNFOnFeedsExtendCallback() {
-    @Override
-    public void onStart(NNFChannelInfo channelInfo, int loadType, Object extraData) {
-        Log.e("数据扩展", "onStart@channel = " + channelInfo.channelName + ", @loadType = " + loadType);
+private void initFeedsStepByStep() {
+    HashMap<String, CustomOption> map = new HashMap<>();
+
+    initCustomStyle(map);
+
+    FragmentManager fm = getSupportFragmentManager();
+    FragmentTransaction ft = fm.beginTransaction();
+    mFeedsFragment = NNewsFeedsUI.createFeedsFragment(new FeedsCallbackSample(), null, null);
+    mFeedsFragment.setOnFeedsExtendCallback(new SampleExtendCallback(mFeedsFragment));
+    ft.replace(R.id.fragment_container, mFeedsFragment);
+    ft.commitAllowingStateLoss();
+}
+
+private class SampleExtendCallback extends NNFOnFeedsExtendCallback {
+
+    private WeakReference<NNFeedsFragment> mWeakReference;
+    HashMap<Integer, NNFExtendNewsInfo[]> mHashMap;
+
+    public SampleExtendCallback(NNFeedsFragment feedsFragment) {
+        mWeakReference = new WeakReference<NNFeedsFragment>(feedsFragment);
+        mHashMap = new HashMap<>();
     }
 
     @Override
-    public void onFinish(NNFChannelInfo channelInfo, int loadType, Object extraData) {
-        Log.e("数据扩展", "onFinish@channel = " + channelInfo.channelName + ", @loadType = " + loadType);
+    public void onStart(NNFChannelInfo channelInfo, int loadType, Object extraData) {
+        Log.d("数据扩展", "onStart@channel = " + channelInfo.channelName + ", @loadType = " + loadType);
 
+        // 读取缓存或发起网络请求获取待插入的新闻数据
         String json = "{\n" +
                 "\t\t\t\"producer\": \"recommendation\",\n" +
                 "\t\t\t\"recId\": \"736633ceedf146e78a5086acaa821d2b_930340049\",\n" +
@@ -1040,12 +1057,22 @@ mFeedsFragment.setOnFeedsExtendCallback(new NNFOnFeedsExtendCallback() {
                 "\t\t}";
 
         NNFExtendNewsInfo newsInfo = NNFJsonUtils.fromJson(json, NNFExtendNewsInfo.class);
-        int[] indexArr = new int[]{3};
         NNFExtendNewsInfo[] infos = new NNFExtendNewsInfo[]{newsInfo};
 
+        mHashMap.put(channelInfo.hashCode(), infos);
+    }
+
+    @Override
+    public void onFinish(NNFChannelInfo channelInfo, int loadType, Object extraData) {
+        Log.d("数据扩展", "onFinish@channel = " + channelInfo.channelName + ", @loadType = " + loadType);
+        // 该方法被触发，表示SDK内部完成网络请求；等待数据插入
+        int[] indexArr = new int[]{3};
+        NNFExtendNewsInfo[] infos = mHashMap.get(channelInfo.hashCode());
+
+        // 通知SDK，插入结束
         mFeedsFragment.insertUserData(channelInfo, loadType, indexArr, infos);
     }
-});
+}
 ```
 
 例如上例中插入了一条infoType为ad的新闻，则app开发人员需要自定义点击回调，示例如下：
@@ -1054,30 +1081,11 @@ mFeedsFragment.setOnFeedsExtendCallback(new NNFOnFeedsExtendCallback() {
 private class FeedsCallbackSample extends NNFOnFeedsCallback {
     @Override
     public void onNewsClick(Context context, NNFNewsInfo newsInfo, Object extraData) {
-        if (null != newsInfo && null != newsInfo.infoType) {
+        if (null == newsInfo || null == newsInfo.infoType) return;
+        if (newsInfo instanceof NNFExtendNewsInfo) {
+            // 用户自定义新闻被点击
             switch (newsInfo.infoType) {
-                case NNFUIConstants.INFO_TYPE_ARTICLE:
-                    /**
-                     * 文章类新闻展示页面
-                     */
-                    SampleArticleActivity.start(context, newsInfo);
-                    break;
-                case NNFUIConstants.INFO_TYPE_PICSET:
-                    /**
-                     * 图集类新闻展示页面
-                     */
-                    SamplePicSetGalleryActivity.start(context, newsInfo);
-                    break;
-                case NNFUIConstants.INFO_TYPE_VIDEO:
-                    /**
-                     * 视频类新闻展示页面
-                     */
-                    DefaultMoreVideosActivity.start(context, newsInfo);
-                    break;
                 case NNFUIConstants.INFO_TYPE_AD:
-	                /**
-	                 * 用户插入的数据
-	                 */
                     Intent intent = new Intent();
                     intent.setAction("android.intent.action.VIEW");
                     Uri content_url = Uri.parse("https://www.baidu.com/");
@@ -1086,6 +1094,28 @@ private class FeedsCallbackSample extends NNFOnFeedsCallback {
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     }
                     context.startActivity(Intent.createChooser(intent, "请选择浏览器"));
+                    break;
+            }
+        } else {
+            // 普通新闻被点击
+            switch (newsInfo.infoType) {
+                case NNFUIConstants.INFO_TYPE_ARTICLE:
+                    /**
+                     * 第三步：自定义文章类新闻展示页面
+                     */
+                    SampleArticleActivity.start(context, newsInfo);
+                    break;
+                case NNFUIConstants.INFO_TYPE_PICSET:
+                    /**
+                     * 第四步：自定义图集类新闻展示页面
+                     */
+                    SamplePicSetGalleryActivity.start(context, newsInfo);
+                    break;
+                case NNFUIConstants.INFO_TYPE_VIDEO:
+                    /**
+                     * 第五步：自定义视频类新闻展示页面
+                     */
+                    DefaultMoreVideosActivity.start(context, newsInfo);
                     break;
             }
         }
