@@ -938,11 +938,11 @@ public void performRefresh()
 
 ```java
 /**
- * 允许用户直接定位到某一个频道
+ * 允许用户直接定位到某一个频道，请传入channelTag
  *
- * @param channelId
+ * @param channelTag
  */
-public void setSelectedChannel(String channelId)
+public void setSelectedChannel(String channelTag)
 ```
 可调用该接口定位到指定频道。
 
