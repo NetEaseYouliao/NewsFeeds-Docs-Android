@@ -242,7 +242,7 @@ channels| NNFChannelInfo[]| 频道列表
 
 名称 | 类型 | 示例 | 描述
 ---|---|---|---
-channelId| String| | 频道ID
+channelTag | String | | 频道唯一标识，channelId可能会改变，但是channelTag会唯一不变
 channelName | String ||频道名称
 channelOrder | int | 1 | 频道显示的顺序
 channelType | int | 1 | 频道类型，其中4表示自营频道
@@ -473,17 +473,18 @@ errorCode == 4004    表示该频道下拉取不到任何的新闻列表信息�
 
 ```java
 /**
- * @param infoId   新闻ID
- * @param infoType 新闻类型，文章/图集/视频
+ * 加载相关新闻
+ *
+ * @param newsInfo 新闻摘要
  * @param listener 网络请求回调
  */
-public void loadRelatedNews(String infoId, String infoType, NNFHttpRequestListener<NNFNews> listener)
+public void loadRelatedNews(NNFNewsInfo newsInfo, NNFHttpRequestListener<NNFNews> listener)
 ```
 
 - 示例 
 
 ```java
-NNewsFeedsSDK.getInstance().loadRelatedNews(mNewsInfo.infoId, mNewsInfo.infoType, new NNFHttpRequestListener<NNFNews>() {
+NNewsFeedsSDK.getInstance().loadRelatedNews(mNewsInfo, new NNFHttpRequestListener<NNFNews>() {
     @Override
     public void onHttpSuccessResponse(NNFNews result) {
         mContactView.hideProgressDialog();
@@ -512,13 +513,12 @@ NNewsFeedsSDK.getInstance().loadRelatedNews(mNewsInfo.infoId, mNewsInfo.infoType
 
 ```java
 /**
- * @param infoid      新闻id
- * @param producer    新闻生产者，user：用户，recommendation：推荐系统
+ * @param newsInfo    新闻摘要
  * @param reportType  投诉类型，1-9，1：广告，2：低俗色情，3：反动不良，4：老旧重复内容，5：标题党，6：内容排版有误，7：疑似抄袭，8：谣言，9：其他
  * @param otherReason 其他投诉原因，当reportType为9时传该参数
  * @param listener
  */
-public void reportNews(String infoid, String producer, String reportType, String otherReason, NNFHttpRequestListener<Result> listener)
+public void reportNews(NNFNewsInfo newsInfo, String reportType, String otherReason, NNFHttpRequestListener<Result> listener)
 ```
 
 其中，reportType 表示投诉类型，支持的投诉类型如下表所示，取值范围为1-9，当 reportType 为9时可通过 otherReason 参数上报投诉原因。
@@ -538,7 +538,7 @@ public void reportNews(String infoid, String producer, String reportType, String
 - 示例
 
 ```java
-NNewsFeedsSDK.getInstance().reportNews(newsInfo.infoId, newsInfo.producer, reportType, reportReason, new NNFHttpRequestListener<Result>() {
+NNewsFeedsSDK.getInstance().reportNews(newsInfo, reportType, reportReason, new NNFHttpRequestListener<Result>() {
     @Override
     public void onHttpSuccessResponse(Result result) {
         
@@ -632,7 +632,7 @@ title | String || 新闻标题
 publishTime | String || 发布时间，格式：“yyyy-MM-dd HH:mm:ss”
 source | String || 新闻来源
 content | String |  | 新闻正文
-imgs | NNFImageInfo[] |  | 图片列表， infoType=article表示正文图片列表， infoType=picset该字段为空， infoType=video该字段为空
+imgs | NNFImageInfo[] |  | 图片列表， infoType = article表示正文图片列表， infoType = picset表示图集中的图片列表， infoType = video该字段为空
 
 单个图片数据模型NNFImageInfo字段说明：
 
