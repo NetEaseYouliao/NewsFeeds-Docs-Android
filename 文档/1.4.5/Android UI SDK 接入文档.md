@@ -231,7 +231,7 @@ public interface NNFOnShareCallback {
 其中，shareInfo以键值对的形式存储了单条新闻的必要描述信息，开发人员可根据这些信息构造分享视图，详细说明如下：
 
 key | value描述
----|---|---
+---|---
 title | 新闻标题
 infoId | 新闻ID
 infoType | 新闻类型，article/picset/video
