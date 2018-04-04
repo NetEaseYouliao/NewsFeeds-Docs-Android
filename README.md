@@ -1,4 +1,7 @@
 # 一、UI SDK更新记录
+## v1.7.0
+
+- 处理svideo短视频交互事件
 
 ## v1.6.0
 
@@ -48,6 +51,11 @@
 
 
 # 二、DATA SDK更新记录
+
+## v1.7.0 
+
+- 行为上报时，将channelId修改为tag
+- infoType新增svideo类型，表示短视频
 
 ## v1.6.0 
 
