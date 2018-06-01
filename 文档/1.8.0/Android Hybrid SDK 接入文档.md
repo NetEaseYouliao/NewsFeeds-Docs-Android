@@ -91,6 +91,12 @@ init是web页面加载时发起的事件，需要用户返回appKey， secretKey
 
 supportSharePlatforms返回当前native支持的分享平台，其中0表示微信分享用户，1表示微信朋友圈。native需要自行判断微信的安装情况来返回参数。暂不支持其它平台。
 
+closePullRefresh是页面下拉刷新开关，默认开启。
+
+customNegativeFeedBack是负反馈native化的配置参数，默认为false，设置为true后，点击feed流里面的关闭x，回回调NEGATIVE_FEED_BACK事件，设置为flase后，前端页面回自动处理，不会产生回调。
+
+
+
 ```
 private boolean init(HybridView webView) {
     try {
@@ -107,8 +113,8 @@ private boolean init(HybridView webView) {
         supportData.put("supportActions", supportActions);
         supportData.put("appKey", BuildConfig.appKey);
         supportData.put("secretKey", BuildConfig.secretKey);
-        supportData.put("closePullRefresh", true);
-        supportData.put("customNegativeFeedBack", true);
+    //  supportData.put("closePullRefresh", true);
+    //  supportData.put("customNegativeFeedBack", true);
 
         supportData.put("closeShare", true);
 
